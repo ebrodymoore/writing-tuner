@@ -1,0 +1,5 @@
+node_modules/
+.lock
+guide-draft.md
+*.jsonl
+.server-info
