@@ -34,9 +34,14 @@ Track these:
 
 **Ask one question at a time using the interactive selector. Tell the user to run these with `!` so they get the arrow-key menu.**
 
-1. Tell the user:
+**For interactive selectors:** Construct the full command with the absolute `WT` path substituted in (not as a shell variable). Then tell the user to type `!` followed by the command. The command must work as a standalone — no `&&` chaining, no `$WT` references.
+
+Example: if WT is `/Users/me/writing-tuner`, tell the user:
+> `! node /Users/me/writing-tuner/bin/select.js --prompt "..." --options "..."`
+
+1. Build the select command with the resolved WT path and tell the user to run it:
    > Type this to pick your writing output:
-   > `! node "$WT/bin/select.js" --prompt "What writing output are you tuning for?" --options "Tweet / short-form social,Blog post / newsletter,Long-form / essay / story,Marketing copy / ads,General writing style"`
+   > `! node {WT}/bin/select.js --prompt "What writing output are you tuning for?" --options "Tweet / short-form social,Blog post / newsletter,Long-form / essay / story,Marketing copy / ads,General writing style"`
 
    *Wait for response. Map their selection to output_type.*
 
@@ -44,9 +49,9 @@ Track these:
 
    *Wait for response. This one is free-text so no selector needed.*
 
-3. Tell the user:
+3. Build the select command with the resolved WT path and tell the user to run it:
    > Type this to pick feedback mode:
-   > `! node "$WT/bin/select.js" --prompt "Feedback mode?" --options "Terminal (keyboard shortcuts),Browser (click-to-annotate)"`
+   > `! node {WT}/bin/select.js --prompt "Feedback mode?" --options "Terminal (keyboard shortcuts),Browser (click-to-annotate)"`
 
    *Wait for response.*
 
@@ -138,7 +143,9 @@ The user can provide a prompt or let you pick one for the `output_type`.
 Present the proof sample. Then tell the user:
 
 > Type this to choose what's next:
-> `! node "$WT/bin/select.js" --prompt "What next?" --options "Accept — save guide and exit,Annotate — mark up this proof sample,Compare variants — see 2-3 versions side by side,Test another prompt — different writing task same guide,Annotate another doc — generate new writing to annotate"`
+> `! node {WT}/bin/select.js --prompt "What next?" --options "Accept — save guide and exit,Annotate — mark up this proof sample,Compare variants — see 2-3 versions side by side,Test another prompt — different writing task same guide,Annotate another doc — generate new writing to annotate"`
+
+(Replace `{WT}` with the actual absolute path before showing to user.)
 
 Handle the selection:
 - **Accept** → go to SAVE
