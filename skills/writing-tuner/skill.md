@@ -56,8 +56,10 @@ If ambiguous (could be either samples or a guide), ask: "This looks like it coul
 **Step 3: Run setup.**
 
 ```bash
-node {CLI} setup
+node {CLI} setup --output-type OUTPUT_TYPE
 ```
+
+Where `OUTPUT_TYPE` is the value captured from Step 1 (e.g., `tweet`, `blog-post`, `long-form`, `marketing-copy`, or `general`).
 
 **Step 4: MANDATORY — check `guide_state` in the setup response. Do NOT skip this.**
 
@@ -68,7 +70,7 @@ node {CLI} setup
   - options:
     - label: "Resume", description: "Pick up where you left off"
     - label: "Start fresh", description: "Discard old draft and begin new"
-  - If user selects "Start fresh": run `node {CLI} setup --fresh`
+  - If user selects "Start fresh": run `node {CLI} setup --fresh --output-type OUTPUT_TYPE`
 - If `"latest-exists"`: **STOP. Use AskUserQuestion:**
   - question: "Found an existing writing guide. What would you like to do?"
   - header: "Guide"
@@ -76,7 +78,7 @@ node {CLI} setup
     - label: "Use it", description: "Continue refining your existing guide"
     - label: "Start fresh", description: "Begin a new guide from scratch"
   - If "Use it": `cp ./writing-guides/guide-latest.md ./writing-guides/guide-draft.md`
-  - If "Start fresh": run `node {CLI} setup --fresh`
+  - If "Start fresh": run `node {CLI} setup --fresh --output-type OUTPUT_TYPE`
 
 If `lock_acquired` is false, check if stale and offer force-unlock.
 
@@ -85,14 +87,25 @@ If `lock_acquired` is false, check if stale and offer force-unlock.
 First read `./writing-guides/guide-draft.md` using the Read tool.
 
 **If writing samples were provided:**
-Analyze the samples to extract voice, tone, word preferences, sentence patterns, and structure preferences. Write the updated guide back to `./writing-guides/guide-draft.md`.
+Analyze the samples to extract:
+- Voice, tone, word preferences, sentence patterns, and structure preferences
+- Anti-voice signals — what the writing consistently avoids (e.g., never uses jargon, avoids passive voice)
+- Boundary rules — things the samples always or never do (populate "Always Do" / "Never Do")
+- 2-3 paired good/bad examples drawn from the samples (populate "Examples" section with `<example type="good">` and `<example type="bad">` tags)
+- Set initial confidence to "low" for all extracted preferences
+
+Write the updated guide back to `./writing-guides/guide-draft.md`.
 
 **If an existing style guide was provided:**
 Read the external guide (use Read tool if a file path, or use pasted content directly). Merge its contents into the template structure:
 - Voice/tone descriptions → "Voice & Tone" section
-- Word-level preferences (avoid/prefer, terminology) → "Word Preferences" table
+- Anti-patterns or "don't" rules → "Anti-Voice" section
+- Prohibitions/mandates → "Boundaries" section ("Always Do" / "Never Do")
+- Word-level preferences (avoid/prefer, terminology) → "Word Preferences" table (set Confidence to "medium" since they come from an established guide)
 - Sentence-level guidance → "Sentence Patterns"
 - Structural/formatting rules → "Structure Preferences"
+- Examples/counter-examples → "Examples" section (use `<example type="good">` and `<example type="bad">` tags)
+- Output-type-specific rules → "Output-Type Rules" section
 - Record source in "Learned from Samples" as: "Seeded from external style guide: [filename or 'pasted']"
 - Preferences that don't fit a section → add to the most relevant one
 
@@ -154,7 +167,7 @@ Returns JSON with `annotations` array and `warnings`. Tell user about any warnin
 Then get the guide update prompt:
 
 ```bash
-node {CLI} update-prompt --annotations-json 'THE_EXTRACT_OUTPUT'
+node {CLI} update-prompt --annotations-json 'THE_EXTRACT_OUTPUT' --output-type OUTPUT_TYPE
 ```
 
 Use that prompt to generate an updated guide. **First read `./writing-guides/guide-draft.md` using the Read tool**, then use the **Write tool** to save the updated version. The Read must happen before the Write or it will fail.
@@ -201,6 +214,26 @@ Report to user:
 - Guide saved: `./writing-guides/guide-vN.md`
 - Latest: `./writing-guides/guide-latest.md`
 - Resume anytime: `/writing-tuner --guide ./writing-guides/guide-latest.md`
+
+Then proceed to EXPORT.
+
+### EXPORT
+
+After saving, offer to export the guide for use in other tools.
+
+**Use AskUserQuestion:**
+- question: "Export your guide for use in other tools?"
+- header: "Export"
+- multiSelect: false
+- options:
+  - label: "System prompt", description: "XML-tagged fragment for any system prompt or agent pipeline"
+  - label: "CLAUDE.md section", description: "Ready to paste into a CLAUDE.md file"
+  - label: "Skip", description: "Done for now"
+
+Handle the selection:
+- **System prompt**: run `node {CLI} export --format system-prompt`, show the output to the user and suggest where to paste it (system prompt, agent config, etc.)
+- **CLAUDE.md section**: run `node {CLI} export --format claude-md`, show the output and suggest pasting it into the project's CLAUDE.md
+- **Skip**: end session
 
 ## Error Recovery
 
