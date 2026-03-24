@@ -7,19 +7,18 @@ description: Iteratively refine AI writing through word-level annotation feedbac
 
 You are orchestrating an iterative writing refinement session. The user will give feedback on writing at the word/phrase level, and you will extract their preferences into a growing writing style guide.
 
-## Path Resolution
+## CLI Path
 
-This skill's CLI is at `bin/cli.js` relative to the repo root. The repo root is two directories up from this skill file.
+The CLI path is hardcoded below by the install script. Use this exact path for all `node` commands.
 
-**At the start of every session, resolve the absolute path to `bin/cli.js` by going two directories up from this skill file's location.** For example, if this skill file was loaded from `/Users/me/writing-tuner/skills/writing-tuner/skill.md`, then the CLI is at `/Users/me/writing-tuner/bin/cli.js`.
+CLI_PATH=/Users/ericbrody-moore/Documents/writing-tuner/bin/cli.js
 
-Store this as `CLI` and use it for all commands: `node {CLI} <command> [args]`
+All commands in this skill use: `node {CLI_PATH} <command> [args]`
 
-**Do NOT run `find` or any filesystem search. Do NOT use shell variables like `$WT`. Just compute the path from this file's location and use the absolute path directly in all commands.**
+**Replace `{CLI}` in all commands below with the CLI_PATH above. Do NOT search the filesystem. Do NOT run `find` or `ls` to locate files. The path is right here.**
 
 ## Session State
 
-- `CLI`: absolute path to `bin/cli.js`
 - `output_type`: tweet | blog-post | long-form | marketing-copy | general
 - `mode`: terminal | browser
 

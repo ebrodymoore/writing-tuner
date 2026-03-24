@@ -13,9 +13,10 @@ The problem: getting Claude to write in your voice requires long, fragile system
 ```bash
 # 1. Clone the repo
 git clone https://github.com/ebrodymoore/writing-tuner.git
+cd writing-tuner
 
-# 2. Add the skill to Claude Code
-claude config add skills "$(pwd)/writing-tuner/skills"
+# 2. Install (writes paths + registers skill with Claude Code)
+./install.sh
 
 # 3. Start tuning
 /writing-tuner
