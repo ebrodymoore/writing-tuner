@@ -85,18 +85,26 @@ node {CLI} setup
 
 If `lock_acquired` is false, check if stale and offer force-unlock.
 
-**Step 6: Start server if browser mode.**
+**Step 6: Seed guide from samples (if provided).**
+
+If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
+
+**Step 7: Generate the first draft and segment it.**
+
+Either ask for a writing prompt or generate one based on the output type. Then segment:
+
+```bash
+node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
+```
+
+**Step 8: Start server if browser mode.**
+
+The draft text MUST be segmented before starting the server, so the browser has content to display.
 
 ```bash
 node {CLI} server-start
 ```
-Tell the user the URL from the JSON output.
-
-**Step 7: Seed guide from samples (if provided).**
-
-If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
-
-Then proceed directly to DRAFT.
+Tell the user the URL from the JSON output. The browser will show the draft text immediately.
 
 ### Resume Session (`/writing-tuner --guide <path>`)
 

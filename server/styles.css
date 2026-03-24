@@ -19,6 +19,8 @@ h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #fff; }
   padding: 1.5rem 2rem;
   line-height: 1.8;
   font-size: 1.1rem;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #draft-container p {

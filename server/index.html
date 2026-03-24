@@ -46,9 +46,28 @@
     document.getElementById('done-btn').addEventListener('click', signalDone);
 
     async function init() {
-      const res = await fetch('/api/draft');
-      draft = await res.json();
-      render();
+      const container = document.getElementById('draft-container');
+      const msg = document.createElement('p');
+      msg.style.cssText = 'text-align:center;color:#888;padding:3rem;';
+      msg.textContent = 'Waiting for draft text...';
+      container.appendChild(msg);
+
+      // Poll for draft — it may not exist yet if server started before text was segmented
+      for (let attempt = 0; attempt < 60; attempt++) {
+        try {
+          const res = await fetch('/api/draft');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.segments && data.segments.length > 0) {
+              draft = data;
+              render();
+              return;
+            }
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      msg.textContent = 'No draft loaded. Return to terminal.';
     }
 
     function render() {
@@ -89,7 +108,6 @@
           span.dataset.seg = String(seg.index);
           span.dataset.word = String(i);
           span.addEventListener('mousedown', onWordMouseDown);
-          span.addEventListener('mouseenter', onWordMouseEnter);
           currentP.appendChild(span);
 
           // Space between words is a styled span so it can join group highlights
@@ -129,14 +147,38 @@
       addToSelection(el);
     }
 
-    function onWordMouseEnter(e) {
+    // Container-level mousemove for reliable drag selection
+    document.addEventListener('mousemove', (e) => {
       if (!isSelecting) return;
-      const el = e.target;
+      let el = e.target;
+      // If hovering a space between words, find the nearest word in drag direction
+      if (el.classList.contains('word-space')) {
+        const next = el.nextElementSibling;
+        if (next && next.classList.contains('word')) el = next;
+        else return;
+      }
       if (!el.classList.contains('word')) return;
       const seg = parseInt(el.dataset.seg, 10);
       if (selectedWords.length > 0 && selectedWords[0].segIdx !== seg) return;
+
+      const curIdx = parseInt(el.dataset.word, 10);
+
+      // Fill in any skipped words between last selected and current
+      if (selectedWords.length > 0) {
+        const lastIdx = selectedWords[selectedWords.length - 1].wordIdx;
+        if (curIdx !== lastIdx) {
+          const container = el.parentNode;
+          const lo = Math.min(lastIdx, curIdx);
+          const hi = Math.max(lastIdx, curIdx);
+          for (let i = lo; i <= hi; i++) {
+            const mid = container.querySelector(`.word[data-seg="${seg}"][data-word="${i}"]`);
+            if (mid) addToSelection(mid);
+          }
+        }
+      }
+
       addToSelection(el);
-    }
+    });
 
     function onMouseUp() {
       if (!isSelecting) return;
