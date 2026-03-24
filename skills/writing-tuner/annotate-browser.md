@@ -6,8 +6,8 @@ Ensure `current-draft.json` exists in the session directory. It should have been
 
 ```bash
 node -e "
-import { segmentText } from './lib/parser.js';
-import { writeDraftJson } from './lib/guide-builder.js';
+import { segmentText } from '$WRITING_TUNER_ROOT/lib/parser.js';
+import { writeDraftJson } from '$WRITING_TUNER_ROOT/lib/guide-builder.js';
 const raw = process.argv[1];
 const segments = segmentText(raw);
 writeDraftJson('./writing-guides/.session', 'OUTPUT_TYPE', segments, raw);
@@ -16,14 +16,10 @@ writeDraftJson('./writing-guides/.session', 'OUTPUT_TYPE', segments, raw);
 
 ## Starting the Server
 
-Start the annotation server in the background:
+The server should have been started during session setup. If not, start it now:
 
 ```bash
-node server/server.js --session-dir ./writing-guides/.session --port 0
-```
-
-Read the server info to get the URL:
-```bash
+node "$WRITING_TUNER_ROOT/server/server.js" --session-dir ./writing-guides/.session --port 0 &
 cat ./writing-guides/.session/.server-info
 ```
 
