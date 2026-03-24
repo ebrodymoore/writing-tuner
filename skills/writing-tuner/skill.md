@@ -26,21 +26,25 @@ All commands in this skill use: `node {CLI_PATH} <command> [args]`
 
 ### New Session (`/writing-tuner`)
 
-**Ask one question at a time. For menu choices, tell the user to run the interactive selector with `!`.**
+**Ask one question at a time. Wait for the user to respond before asking the next.**
 
-1. Tell the user to run the selector (substitute the resolved CLI path):
-   > Pick your writing output — type this:
-   > `! node {CLI} select --prompt "What writing output are you tuning for?" --options "Tweet / short-form social,Blog post / newsletter,Long-form / essay / story,Marketing copy / ads,General writing style"`
-
-   *Wait for response. Map their selection to output_type.*
-
-2. Ask: **"Want to upload writing samples to establish your voice? Paste text, reference files, or skip to start from scratch."**
+1. **"What writing output are you tuning for?"**
+   - a) Tweet / short-form social
+   - b) Blog post / newsletter
+   - c) Long-form / essay / story
+   - d) Marketing copy / ads
+   - e) General writing style
 
    *Wait for response.*
 
-3. Tell the user to run the selector:
-   > Pick feedback mode — type this:
-   > `! node {CLI} select --prompt "Feedback mode?" --options "Terminal (keyboard shortcuts),Browser (click-to-annotate)"`
+2. **"Want to upload writing samples to establish your voice? Paste text, reference files, or skip to start from scratch."**
+
+   *Wait for response.*
+
+3. **"Feedback mode?"**
+   - a) Terminal — keyboard shortcuts, fast annotation
+   - b) Browser — click-to-annotate in a local web UI
+   - (You can switch anytime during a session)
 
    *Wait for response.*
 
@@ -129,10 +133,14 @@ Generate a **fresh** writing sample using ONLY `current_guide` as instructions. 
 
 The user can provide a prompt or let you pick one for the `output_type`.
 
-Present the proof sample. Then tell the user to run the selector:
+Present the proof sample. Then ask:
 
-> Choose what's next — type this:
-> `! node {CLI} select --prompt "What next?" --options "Accept — save guide and exit,Annotate — mark up this proof sample,Compare variants — see 2-3 versions side by side,Test another prompt — different writing task same guide,Annotate another doc — generate new writing to annotate"`
+**"What next?"**
+- a) Accept — save guide and exit
+- b) Annotate — mark up this proof sample
+- c) Compare variants — see 2-3 versions side by side
+- d) Test another prompt — different writing task, same guide
+- e) Annotate another doc — generate new writing to annotate
 
 Handle the selection:
 - **Accept** → go to SAVE
