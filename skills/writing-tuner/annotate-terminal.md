@@ -25,7 +25,11 @@ All segment and word numbers are **1-based** in terminal commands.
 
 ## Collecting Input
 
-Read the user's commands one at a time. For each command, parse it and write a JSON line to `./writing-guides/.session/annotations.jsonl`.
+Read the user's commands one at a time. For each command, parse it and write the annotation:
+
+```bash
+node "$WT/bin/cli.js" annotate '{"segment":2,"words":[0,5],"text":"...","action":"dislike","comment":"too formal"}'
+```
 
 **Parsing rules:**
 
@@ -38,19 +42,16 @@ Read the user's commands one at a time. For each command, parse it and write a J
 | `sN "use X"` | `{"segment":N-1,"words":[0,LAST],"text":"...","action":"suggest","replacement":"use X"}` |
 | `sN:W-W "x"` | `{"segment":N-1,"words":[W1-1,W2-1],"text":"...","action":"suggest","replacement":"x"}` |
 
-**Index conversion:** Subtract 1 from segment number and word numbers when writing JSON (terminal is 1-based, JSON is 0-based).
+**Index conversion:** Subtract 1 from segment and word numbers (terminal is 1-based, JSON is 0-based).
 
-**LAST** means the last word index in the segment (segment.words.length - 1).
+**LAST** = last word index in the segment (segment.words.length - 1).
 
-To resolve the `text` field: look up the segment from `current-draft.json`, extract `words[start..end]`, join with spaces.
+To resolve `text`: look up the segment from `current-draft.json`, extract `words[start..end]`, join with spaces.
 
-Write each annotation as a JSON line:
-```bash
-echo '{"segment":2,"words":[0,5],"text":"...","action":"dislike","comment":"too formal"}' >> ./writing-guides/.session/annotations.jsonl
-```
+**Batching:** If the user gives multiple annotations in one message, you can batch them into a single command by writing them all to the file at once rather than calling `annotate` per line.
 
 ## Flow Control
 
 - **`done`** — finish annotation, proceed to EXTRACT
-- **`m`** — switch to browser mode. Read `annotate-browser.md` and follow it. Any annotations already written to `annotations.jsonl` are preserved.
+- **`m`** — switch to browser mode. Read `annotate-browser.md` and follow it. Existing annotations are preserved.
 - If the user types something that doesn't match a command, ask them to try again and re-show the command reference.

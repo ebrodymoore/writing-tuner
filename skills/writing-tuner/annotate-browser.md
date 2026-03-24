@@ -2,28 +2,21 @@
 
 ## Prerequisites
 
-Ensure `current-draft.json` exists in the session directory. It should have been written during the DRAFT step. If not, write it now:
+Ensure `current-draft.json` exists in the session directory (it should have been written by the `segment` command during DRAFT). If not:
 
 ```bash
-node -e "
-import { segmentText } from '$WRITING_TUNER_ROOT/lib/parser.js';
-import { writeDraftJson } from '$WRITING_TUNER_ROOT/lib/guide-builder.js';
-const raw = process.argv[1];
-const segments = segmentText(raw);
-writeDraftJson('./writing-guides/.session', 'OUTPUT_TYPE', segments, raw);
-" 'THE DRAFT TEXT'
+node "$WT/bin/cli.js" segment "THE DRAFT TEXT" "OUTPUT_TYPE"
 ```
 
 ## Starting the Server
 
-The server should have been started during session setup. If not, start it now:
+The server should have been started during session setup. If not:
 
 ```bash
-node "$WRITING_TUNER_ROOT/server/server.js" --session-dir ./writing-guides/.session --port 0 &
-cat ./writing-guides/.session/.server-info
+node "$WT/bin/cli.js" server-start
 ```
 
-Tell the user:
+Tell the user the URL from the JSON output:
 > **Open http://localhost:PORT in your browser.**
 > Click or drag to select words, then use the toolbar to annotate.
 > Type `done` here when you're finished.
@@ -39,12 +32,11 @@ If the user asks questions or gives feedback in the terminal while annotating, r
 When the user types `done`:
 
 1. Stop the server (kill the background process)
-2. Read the annotations: `cat ./writing-guides/.session/annotations.jsonl`
-3. Proceed to the EXTRACT step
+2. Proceed to the EXTRACT step — run `node "$WT/bin/cli.js" extract`
 
 ## Switching to Terminal Mode
 
 If the user types `t` to switch to terminal mode:
 1. Stop the server
-2. Annotations already in `annotations.jsonl` are preserved — do not clear the file
-3. Read `annotate-terminal.md` and follow it, displaying the current draft with segment numbers
+2. Annotations already in `annotations.jsonl` are preserved
+3. Read `annotate-terminal.md` and follow it
