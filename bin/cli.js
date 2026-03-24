@@ -129,13 +129,14 @@ switch (command) {
   case 'update-prompt': {
     const guideDir = getArg(args, '--guide-dir', './writing-guides');
     const annotationsJson = getArg(args, '--annotations-json', args[0]);
+    const outputType = getArg(args, '--output-type', null);
 
     const { formatGuideUpdatePrompt } = await import(path.join(ROOT, 'lib', 'guide-builder.js'));
 
     const guide = fs.readFileSync(path.join(guideDir, 'guide-draft.md'), 'utf-8');
     const annotations = JSON.parse(annotationsJson).annotations || JSON.parse(annotationsJson);
 
-    console.log(formatGuideUpdatePrompt(guide, annotations));
+    console.log(formatGuideUpdatePrompt(guide, annotations, outputType));
     break;
   }
 

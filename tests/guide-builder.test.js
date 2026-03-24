@@ -119,7 +119,7 @@ describe('formatGuideUpdatePrompt', () => {
     const annotations = [{ action: 'like', text: 'crystal clear', comment: null }];
     const result = formatGuideUpdatePrompt(sampleGuide, annotations);
     assert.ok(result.includes('LIKE: "crystal clear"'));
-    assert.ok(!result.includes(' — '), 'no comment dash when comment is absent');
+    assert.ok(!result.includes('LIKE: "crystal clear" — '), 'no comment dash when comment is absent');
   });
 
   it('formats a SUGGEST annotation with replacement', () => {
@@ -136,7 +136,7 @@ describe('formatGuideUpdatePrompt', () => {
     ];
     const result = formatGuideUpdatePrompt(sampleGuide, annotations);
     assert.ok(result.includes('SUGGEST: "commence" -> "start"'));
-    assert.ok(!result.includes(' — '), 'no comment dash when comment is absent');
+    assert.ok(!result.includes('SUGGEST: "commence" — '), 'no comment dash when comment is absent');
   });
 
   it('formats multiple annotations', () => {
@@ -177,5 +177,46 @@ describe('formatGuideUpdatePrompt', () => {
     assert.doesNotThrow(() => formatGuideUpdatePrompt(sampleGuide, []));
     const result = formatGuideUpdatePrompt(sampleGuide, []);
     assert.ok(typeof result === 'string');
+  });
+
+  it('includes confidence tracking instructions', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('Confidence'), 'should mention confidence tracking');
+  });
+
+  it('includes example generation instructions', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('Examples'), 'should mention example generation');
+  });
+
+  it('includes boundary extraction instructions', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('Always Do') || result.includes('Boundaries'));
+  });
+
+  it('includes anti-voice instructions', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('Anti-Voice'));
+  });
+
+  it('includes YAML frontmatter update instructions', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('frontmatter'));
+  });
+
+  it('uses 4000 token budget', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(result.includes('4000'));
+    assert.ok(!result.includes('~2000'));
+  });
+
+  it('includes output_type context when provided', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, [], 'tweet');
+    assert.ok(result.includes('tweet'));
+  });
+
+  it('omits output_type section when not provided', () => {
+    const result = formatGuideUpdatePrompt(sampleGuide, []);
+    assert.ok(!result.includes('Output-Type Rules'));
   });
 });
