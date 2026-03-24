@@ -28,7 +28,7 @@ All segment and word numbers are **1-based** in terminal commands.
 Read the user's commands one at a time. For each command, parse it and write the annotation:
 
 ```bash
-node "$WT/bin/cli.js" annotate '{"segment":2,"words":[0,5],"text":"...","action":"dislike","comment":"too formal"}'
+node {CLI} annotate '{"segment":2,"words":[0,5],"text":"...","action":"dislike","comment":"too formal"}'
 ```
 
 **Parsing rules:**
@@ -48,10 +48,10 @@ node "$WT/bin/cli.js" annotate '{"segment":2,"words":[0,5],"text":"...","action"
 
 To resolve `text`: look up the segment from `current-draft.json`, extract `words[start..end]`, join with spaces.
 
-**Batching:** If the user gives multiple annotations in one message, you can batch them into a single command by writing them all to the file at once rather than calling `annotate` per line.
+**Batching:** If the user gives multiple annotations in one message, batch them into a single `annotate` call.
 
 ## Flow Control
 
 - **`done`** — finish annotation, proceed to EXTRACT
 - **`m`** — switch to browser mode. Read `annotate-browser.md` and follow it. Existing annotations are preserved.
-- If the user types something that doesn't match a command, ask them to try again and re-show the command reference.
+- Unrecognized input: ask user to try again, re-show command reference.
