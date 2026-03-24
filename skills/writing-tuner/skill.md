@@ -20,6 +20,8 @@ Track these variables throughout the session:
 
 ### New Session (`/writing-tuner`)
 
+**Ask these questions one at a time. Wait for the user's response before asking the next.**
+
 1. Ask: **"What writing output are you tuning for?"**
    - a) Tweet / short-form social
    - b) Blog post / newsletter
@@ -27,9 +29,15 @@ Track these variables throughout the session:
    - d) Marketing copy / ads
    - e) General writing style
 
-2. Ask: **"Upload samples?"** — User can paste text or reference files of writing they like. These establish the baseline voice. Skip to start from scratch.
+   *Wait for response.*
 
-3. Ask: **"Feedback mode?"** — terminal (t) or browser (b). Can switch mid-session.
+2. Ask: **"Want to upload writing samples to establish your voice? Paste text, reference files, or skip to start from scratch."**
+
+   *Wait for response.*
+
+3. Ask: **"Feedback mode? Terminal (t) for keyboard shortcuts, or browser (b) for click-to-annotate. You can switch anytime."**
+
+   *Wait for response.*
 
 4. Set up session:
    ```bash
