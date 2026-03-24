@@ -122,9 +122,18 @@ User provides a prompt or pastes existing writing. After generating/accepting, s
 node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
+**CRITICAL — what to show the user depends on mode:**
+
 **Terminal mode:** Show the numbered segment output to the user — they need the numbers to annotate.
 
-**Browser mode:** Do NOT show segment numbers or mention "segmented into N parts." The browser shows natural flowing text. Just tell the user to open the URL and start annotating.
+**Browser mode:** Say ONLY: "Open http://localhost:PORT to annotate your text. Click on words or phrases to mark what you like, dislike, or want changed. Type `done` here when finished."
+
+That's it. Do NOT:
+- Show segment numbers
+- List the segmented text
+- Mention "segmented into N parts"
+- Show any preview of the text
+The browser renders the text naturally — the user will see it there.
 
 ### ANNOTATE
 
