@@ -39,11 +39,19 @@ Use AskUserQuestion with:
 
 Wait for response. Map to output_type.
 
-**Step 2: Ask about writing samples.**
+**Step 2: Ask about writing samples or existing style guide.**
 
-Ask in text: **"Want to upload writing samples to establish your voice? Paste text, reference files, or type 'skip' to start from scratch."**
+Ask in text: **"Want to seed your style guide? You can:**
+- **Paste writing samples** or **reference files** to analyze your voice
+- **Provide a path to an existing style guide** (any format — markdown, plain text, etc.)
+- Type **'skip'** to start from scratch"
 
-Wait for response.
+Wait for response. Classify the input:
+- `samples` — user pasted prose/writing or referenced files containing their writing
+- `style-guide` — user provided a path to (or pasted) a structured style/voice guide
+- `skip` — user wants to start fresh
+
+If ambiguous (could be either samples or a guide), ask: "This looks like it could be writing samples or a style guide. Which should I treat it as?"
 
 **Step 3: Run setup.**
 
@@ -72,9 +80,25 @@ node {CLI} setup
 
 If `lock_acquired` is false, check if stale and offer force-unlock.
 
-**Step 5: Seed guide from samples (if provided).**
+**Step 5: Seed guide from input (if provided).**
 
-If samples were provided, analyze them and update the guide. **First read `./writing-guides/guide-draft.md` using the Read tool**, then use the **Write tool** to write the updated version back. The Read must happen before the Write or it will fail.
+First read `./writing-guides/guide-draft.md` using the Read tool.
+
+**If writing samples were provided:**
+Analyze the samples to extract voice, tone, word preferences, sentence patterns, and structure preferences. Write the updated guide back to `./writing-guides/guide-draft.md`.
+
+**If an existing style guide was provided:**
+Read the external guide (use Read tool if a file path, or use pasted content directly). Merge its contents into the template structure:
+- Voice/tone descriptions → "Voice & Tone" section
+- Word-level preferences (avoid/prefer, terminology) → "Word Preferences" table
+- Sentence-level guidance → "Sentence Patterns"
+- Structural/formatting rules → "Structure Preferences"
+- Record source in "Learned from Samples" as: "Seeded from external style guide: [filename or 'pasted']"
+- Preferences that don't fit a section → add to the most relevant one
+
+Write the merged guide back to `./writing-guides/guide-draft.md`. Preserve template section headings and table format.
+
+The Read must happen before the Write or it will fail.
 
 **Step 6: Generate the first draft and prepare it.**
 
