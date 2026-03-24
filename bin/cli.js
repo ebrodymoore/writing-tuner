@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node bin/cli.js setup [--guide-dir ./writing-guides] [--template-path ./templates/guide-template.md]
- *   node bin/cli.js segment <text> <output_type> [--session-dir ./writing-guides/.session]
+ *   node bin/cli.js prepare <text> <output_type> [--session-dir ./writing-guides/.session]
  *   node bin/cli.js annotate <json> [--session-dir ./writing-guides/.session]
  *   node bin/cli.js extract [--session-dir ./writing-guides/.session]
  *   node bin/cli.js update-prompt [--guide-dir ./writing-guides] [--annotations-json <json>]
@@ -81,30 +81,25 @@ switch (command) {
     break;
   }
 
-  // ── SEGMENT ────────────────────────────────────────────
-  // Segments text, writes current-draft.json, prints numbered segments.
-  // Single command replaces: node -e "import segmentText + writeDraftJson..."
-  case 'segment': {
+  // ── PREPARE ─────────────────────────────────────────────
+  // Tokenizes text into flat word array, writes current-draft.json.
+  case 'prepare': {
     const text = args[0];
     const outputType = args[1] || 'general';
     const sessionDir = getArg(args, '--session-dir', './writing-guides/.session');
 
-    const { segmentText } = await import(path.join(ROOT, 'lib', 'parser.js'));
+    const { tokenizeText } = await import(path.join(ROOT, 'lib', 'parser.js'));
     const { writeDraftJson } = await import(path.join(ROOT, 'lib', 'guide-builder.js'));
 
-    const segments = segmentText(text);
-    writeDraftJson(sessionDir, outputType, segments, text);
+    const words = tokenizeText(text);
+    writeDraftJson(sessionDir, outputType, words, text);
 
-    // Print numbered segments for terminal display
-    for (const s of segments) {
-      console.log(`[${s.index + 1}] ${s.text}`);
-    }
+    console.log(JSON.stringify({ words_count: words.length }));
     break;
   }
 
   // ── EXTRACT ────────────────────────────────────────────
   // Parses, validates, deduplicates annotations. Returns JSON.
-  // Single command replaces: node -e "parseAnnotations + validateAnnotations + dedupe..."
   case 'extract': {
     const sessionDir = getArg(args, '--session-dir', './writing-guides/.session');
 
@@ -120,7 +115,7 @@ switch (command) {
     const jsonl = fs.readFileSync(jsonlPath, 'utf-8');
     const draft = JSON.parse(fs.readFileSync(path.join(sessionDir, 'current-draft.json'), 'utf-8'));
     const parsed = parseAnnotations(jsonl);
-    const { valid, warnings } = validateAnnotations(parsed, draft.segments);
+    const { valid, warnings } = validateAnnotations(parsed, draft.words);
     const deduped = deduplicateAnnotations(valid);
 
     console.log(JSON.stringify({ annotations: deduped, warnings }));
@@ -129,7 +124,6 @@ switch (command) {
 
   // ── UPDATE-PROMPT ──────────────────────────────────────
   // Generates the guide update prompt from current guide + annotations.
-  // Single command replaces: node -e "formatGuideUpdatePrompt..."
   case 'update-prompt': {
     const guideDir = getArg(args, '--guide-dir', './writing-guides');
     const annotationsJson = getArg(args, '--annotations-json', args[0]);
@@ -145,7 +139,6 @@ switch (command) {
 
   // ── SAVE-VERSION ───────────────────────────────────────
   // Saves final version, releases lock, cleans up session.
-  // Single command replaces: node -e "saveVersion + releaseLock" + rm -rf .session
   case 'save-version': {
     const guideDir = getArg(args, '--guide-dir', './writing-guides');
 
@@ -167,8 +160,6 @@ switch (command) {
 
   // ── SERVER-START ───────────────────────────────────────
   // Spawns browser server as a detached process and exits immediately.
-  // The old approach ran the server in-process, which blocked Claude Code's
-  // Bash tool indefinitely (it waits for the process to exit).
   case 'server-start': {
     const sessionDir = getArg(args, '--session-dir', './writing-guides/.session');
     const serverScript = path.join(ROOT, 'server', 'server.js');
@@ -214,6 +205,6 @@ switch (command) {
 
   default:
     console.error(`Unknown command: ${command}`);
-    console.error('Commands: setup, segment, annotate, extract, update-prompt, save-version, server-start, root');
+    console.error('Commands: setup, prepare, annotate, extract, update-prompt, save-version, server-start, root');
     process.exit(1);
 }

@@ -32,7 +32,7 @@
 
   <script>
     let draft = null;
-    let selectedWords = []; // [{segIdx, wordIdx, el}]
+    let selectedWords = []; // [{wordIdx, el}]
     let annotationCount = 0;
     let isSelecting = false;
     let editingKey = null; // non-null when re-opening an existing annotation
@@ -52,13 +52,13 @@
       msg.textContent = 'Waiting for draft text...';
       container.appendChild(msg);
 
-      // Poll for draft — it may not exist yet if server started before text was segmented
+      // Poll for draft — it may not exist yet if server started before text was prepared
       for (let attempt = 0; attempt < 60; attempt++) {
         try {
           const res = await fetch('/api/draft');
           if (res.ok) {
             const data = await res.json();
-            if (data.segments && data.segments.length > 0) {
+            if (data.words && data.words.length > 0) {
               draft = data;
               render();
               return;
@@ -75,54 +75,46 @@
       container.textContent = '';
 
       // Detect paragraph breaks from raw text
+      // Split raw on double newlines, count words per paragraph to know when to start a new <p>
       const paragraphs = draft.raw.split(/\n\s*\n/);
-      let segIdx = 0;
-      let globalWordCount = 0;
+      const paragraphWordCounts = paragraphs.map(p =>
+        p.split(/\s+/).filter(w => w.length > 0).length
+      );
 
-      // Map raw paragraphs to segments
-      // Simple approach: render all segments as flowing inline text
-      // Use raw newlines for paragraph detection
       let currentP = document.createElement('p');
       container.appendChild(currentP);
+      let wordsInCurrentParagraph = 0;
+      let paragraphIdx = 0;
 
-      for (const seg of draft.segments) {
-        // Check if this segment starts a new paragraph by checking raw text
-        // Simple heuristic: if the text before this segment has a double newline
-        if (seg.index > 0) {
-          const prevEnd = draft.raw.indexOf(draft.segments[seg.index - 1].text)
-            + draft.segments[seg.index - 1].text.length;
-          const currStart = draft.raw.indexOf(seg.text, prevEnd);
-          if (currStart > prevEnd) {
-            const between = draft.raw.slice(prevEnd, currStart);
-            if (between.includes('\n\n') || between.includes('\n \n')) {
-              currentP = document.createElement('p');
-              container.appendChild(currentP);
-            }
-          }
+      for (let i = 0; i < draft.words.length; i++) {
+        // Check if we need to start a new paragraph
+        if (paragraphIdx < paragraphWordCounts.length &&
+            wordsInCurrentParagraph >= paragraphWordCounts[paragraphIdx]) {
+          paragraphIdx++;
+          wordsInCurrentParagraph = 0;
+          currentP = document.createElement('p');
+          container.appendChild(currentP);
         }
 
-        for (let i = 0; i < seg.words.length; i++) {
-          const span = document.createElement('span');
-          span.className = 'word';
-          span.textContent = seg.words[i];
-          span.dataset.seg = String(seg.index);
-          span.dataset.word = String(i);
-          span.addEventListener('mousedown', onWordMouseDown);
-          currentP.appendChild(span);
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = draft.words[i];
+        span.dataset.word = String(i);
+        span.addEventListener('mousedown', onWordMouseDown);
+        currentP.appendChild(span);
 
-          // Space between words is a styled span so it can join group highlights
-          if (i < seg.words.length - 1) {
-            const space = document.createElement('span');
-            space.className = 'word-space';
-            space.textContent = ' ';
-            space.dataset.seg = String(seg.index);
-            space.dataset.afterWord = String(i);
-            currentP.appendChild(space);
-          }
+        wordsInCurrentParagraph++;
+
+        // Space between words
+        if (i < draft.words.length - 1 &&
+            !(paragraphIdx < paragraphWordCounts.length &&
+              wordsInCurrentParagraph >= paragraphWordCounts[paragraphIdx])) {
+          const space = document.createElement('span');
+          space.className = 'word-space';
+          space.textContent = ' ';
+          space.dataset.afterWord = String(i);
+          currentP.appendChild(space);
         }
-
-        // Add space between segments (within same paragraph)
-        currentP.appendChild(document.createTextNode(' '));
       }
 
       document.addEventListener('mouseup', onMouseUp);
@@ -159,7 +151,7 @@
       }
       if (!el.classList.contains('word')) return;
 
-      // Allow cross-segment selection — get all word spans in document order
+      // Allow cross-paragraph selection — get all word spans in document order
       // and select everything between the first selected word and the current one
       if (selectedWords.length > 0) {
         const allWords = [...document.querySelectorAll('#draft-container .word')];
@@ -187,13 +179,12 @@
     }
 
     function addToSelection(el) {
-      const segIdx = parseInt(el.dataset.seg, 10);
       const wordIdx = parseInt(el.dataset.word, 10);
       const already = selectedWords.find(
-        (w) => w.segIdx === segIdx && w.wordIdx === wordIdx
+        (w) => w.wordIdx === wordIdx
       );
       if (!already) {
-        selectedWords.push({ segIdx, wordIdx, el });
+        selectedWords.push({ wordIdx, el });
         el.classList.add('selected');
 
         // Also highlight the space span connecting to previous selected word
@@ -203,8 +194,8 @@
           const maxIdx = Math.max(prev.wordIdx, wordIdx);
           // Highlight all spaces between min and max
           for (let si = minIdx; si < maxIdx; si++) {
-            const space = el.parentNode.querySelector(
-              `.word-space[data-seg="${segIdx}"][data-after-word="${si}"]`
+            const space = document.querySelector(
+              `.word-space[data-after-word="${si}"]`
             );
             if (space) space.classList.add('selected');
           }
@@ -229,7 +220,7 @@
 
       // Show selected text
       const text = selectedWords.map(w =>
-        draft.segments[w.segIdx].words[w.wordIdx]
+        draft.words[w.wordIdx]
       ).join(' ');
       selectedTextEl.textContent = '"' + text + '"';
 
@@ -273,17 +264,11 @@
       clearSelection();
 
       // Re-select the annotated words
-      const seg = draft.segments[ann.segment];
-      const [start, end] = ann.words;
       const container = document.getElementById('draft-container');
-      const wordSpans = container.querySelectorAll(
-        `span.word[data-seg="${ann.segment}"]`
-      );
-
-      for (const span of wordSpans) {
-        const wIdx = parseInt(span.dataset.word, 10);
-        if (wIdx >= start && wIdx <= end) {
-          selectedWords.push({ segIdx: ann.segment, wordIdx: wIdx, el: span });
+      for (let i = ann.start; i <= ann.end; i++) {
+        const span = container.querySelector(`span.word[data-word="${i}"]`);
+        if (span) {
+          selectedWords.push({ wordIdx: i, el: span });
           span.classList.add('selected');
         }
       }
@@ -298,43 +283,29 @@
       const comment = document.getElementById('comment-input').value.trim();
       const replacement = document.getElementById('suggest-input').value.trim();
 
-      // Group selected words by segment for cross-segment support
-      const bySegment = new Map();
-      for (const w of selectedWords) {
-        if (!bySegment.has(w.segIdx)) bySegment.set(w.segIdx, []);
-        bySegment.get(w.segIdx).push(w);
-      }
+      // Get sorted word indices for the flat annotation
+      const sorted = [...selectedWords].sort((a, b) => a.wordIdx - b.wordIdx);
+      const start = sorted[0].wordIdx;
+      const end = sorted[sorted.length - 1].wordIdx;
+      const text = sorted.map(w => draft.words[w.wordIdx]).join(' ');
 
-      // Create one annotation per segment, post all of them
-      const allKeys = [];
-      for (const [segIdx, words] of bySegment) {
-        const wordIndices = words.map(w => w.wordIdx).sort((a, b) => a - b);
-        const text = wordIndices
-          .map(i => draft.segments[segIdx].words[i])
-          .join(' ');
+      const annotation = {
+        start,
+        end,
+        text,
+        action,
+      };
+      if (comment) annotation.comment = comment;
+      if (replacement) annotation.replacement = replacement;
 
-        const annotation = {
-          segment: segIdx,
-          words: [wordIndices[0], wordIndices[wordIndices.length - 1]],
-          text: text,
-          action: action,
-        };
-        if (comment) annotation.comment = comment;
-        if (replacement) annotation.replacement = replacement;
+      await fetch('/api/annotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(annotation),
+      });
 
-        await fetch('/api/annotate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(annotation),
-        });
-
-        const key = segIdx + ':' + wordIndices[0] + '-' + wordIndices[wordIndices.length - 1];
-        annotationMap.set(key, annotation);
-        allKeys.push(key);
-      }
-
-      // Use first key as the primary for reopening
-      const key = allKeys[0];
+      const key = start + '-' + end;
+      annotationMap.set(key, annotation);
 
       // Apply visual feedback
       const cssClass =
@@ -350,8 +321,6 @@
       if (replacement) tooltipParts.push('\u270f\ufe0f \u2192 "' + replacement + '"');
       const tooltipText = tooltipParts.join('\n');
 
-      // Sort selected words by index for group styling
-      const sorted = [...selectedWords].sort((a, b) => a.wordIdx - b.wordIdx);
       const isGroup = sorted.length > 1;
 
       for (let wi = 0; wi < sorted.length; wi++) {
@@ -380,8 +349,8 @@
 
         // Highlight the space span AFTER this word (if next word is also in the group)
         if (wi < sorted.length - 1) {
-          const spaceSpan = w.el.parentNode.querySelector(
-            `.word-space[data-seg="${w.segIdx}"][data-after-word="${w.wordIdx}"]`
+          const spaceSpan = document.querySelector(
+            `.word-space[data-after-word="${w.wordIdx}"]`
           );
           if (spaceSpan) {
             spaceSpan.classList.remove('liked', 'disliked', 'suggested', 'commented');

@@ -13,7 +13,7 @@ describe('startServer', () => {
     sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-server-test-'));
     fs.writeFileSync(
       path.join(sessionDir, 'current-draft.json'),
-      JSON.stringify({ text: 'Hello world.', segments: [] })
+      JSON.stringify({ text: 'Hello world.', words: ['Hello', 'world.'] })
     );
   });
 
@@ -56,7 +56,7 @@ describe('startServer', () => {
     serverHandle = await startServer(sessionDir, 0);
     const { port } = serverHandle;
 
-    const annotation = { segmentIndex: 0, label: 'awkward', note: 'Too terse' };
+    const annotation = { start: 0, end: 0, text: 'Hello', action: 'dislike', comment: 'Too terse' };
 
     const res = await fetch(`http://localhost:${port}/api/annotate`, {
       method: 'POST',
@@ -75,9 +75,10 @@ describe('startServer', () => {
     assert.equal(lines.length, 1);
 
     const parsed = JSON.parse(lines[0]);
-    assert.equal(parsed.segmentIndex, 0);
-    assert.equal(parsed.label, 'awkward');
-    assert.equal(parsed.note, 'Too terse');
+    assert.equal(parsed.start, 0);
+    assert.equal(parsed.end, 0);
+    assert.equal(parsed.action, 'dislike');
+    assert.equal(parsed.comment, 'Too terse');
   });
 
   it('appends multiple annotations as separate lines in annotations.jsonl', async () => {
@@ -85,9 +86,9 @@ describe('startServer', () => {
     const { port } = serverHandle;
 
     const annotations = [
-      { segmentIndex: 0, label: 'good' },
-      { segmentIndex: 1, label: 'awkward' },
-      { segmentIndex: 2, label: 'rewrite' },
+      { start: 0, end: 0, text: 'Hello', action: 'like' },
+      { start: 1, end: 1, text: 'world.', action: 'dislike' },
+      { start: 0, end: 1, text: 'Hello world.', action: 'comment' },
     ];
 
     for (const ann of annotations) {
@@ -104,8 +105,8 @@ describe('startServer', () => {
 
     for (let i = 0; i < annotations.length; i++) {
       const parsed = JSON.parse(lines[i]);
-      assert.equal(parsed.segmentIndex, annotations[i].segmentIndex);
-      assert.equal(parsed.label, annotations[i].label);
+      assert.equal(parsed.start, annotations[i].start);
+      assert.equal(parsed.action, annotations[i].action);
     }
   });
 

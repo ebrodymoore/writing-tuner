@@ -37,8 +37,8 @@ cd writing-tuner
    │                    │  suggests   │          ▼
    │                    │             │     accept / annotate more /
    │                    ▼             │     compare variants /
-   │               terminal OR       │     test new prompt
-   │               browser           │
+   │               browser UI        │     test new prompt
+   │                                 │
    └──────────────────────────────────┘
               (repeat until satisfied)
 ```
@@ -47,9 +47,7 @@ cd writing-tuner
 
 2. **Draft** — Claude generates writing using your current guide, or you paste in existing text.
 
-3. **Annotate** — Give precise feedback at the word and phrase level. Two modes:
-   - **Terminal:** keyboard shortcuts for fast annotation
-   - **Browser:** click/drag to select words in a local web UI
+3. **Annotate** — Give precise feedback at the word and phrase level in a local web UI. Click/drag to select words, then use the toolbar to annotate.
 
 4. **Extract** — The tool analyzes your feedback and updates the writing guide automatically.
 
@@ -59,46 +57,14 @@ cd writing-tuner
 
 ---
 
-## Feedback Modes
+## Annotation UI
 
-### Terminal Mode
-
-Best for short-form writing and quick passes. Keyboard-driven.
-
-```
-[1] We're incredibly excited to announce
-[2] our revolutionary new platform.
-[3] Try it today.
-
-> -1 "too hype"
-> -2 "buzzword"
-> +3 "good CTA, direct"
-> s1 "We just launched"
-> done
-```
-
-**Commands:**
-
-| Command | Action |
-|---------|--------|
-| `+N` | Like entire segment N |
-| `-N` | Dislike entire segment N |
-| `+N:W-W` | Like specific words in segment N |
-| `-N "reason"` | Dislike with a comment |
-| `sN "text"` | Suggest replacement for segment N |
-| `m` | Switch to browser mode |
-| `done` | Finish annotating |
-
-### Browser Mode
-
-Best for longer pieces and detailed markup. A local web UI with click/drag word selection.
+A local web UI with click/drag word selection.
 
 - Click or drag to select any word or phrase
-- Floating toolbar appears with Like / Dislike / Suggest buttons
+- Floating toolbar appears with Like / Dislike / Comment buttons
 - Add optional comments or replacement text
-- Color-coded highlights show your annotations (green = liked, red = disliked, yellow = suggested)
-
-Switch between modes at any time during a session.
+- Color-coded highlights show your annotations (green = liked, red = disliked, yellow = commented)
 
 ---
 
@@ -151,7 +117,6 @@ Generated: 2026-03-23 | Sessions: 3 | Annotations: 47
 You'll be asked:
 1. What writing output you're tuning for (tweet, blog, etc.)
 2. Whether to upload writing samples
-3. Preferred feedback mode (terminal or browser)
 
 ### Resume a Previous Session
 
@@ -179,14 +144,13 @@ After each annotation round, Claude generates a **proof sample** — fresh writi
 writing-tuner/
 ├── skills/writing-tuner/     # Claude Code skill (the orchestration layer)
 │   ├── skill.md              # Main workflow prompt
-│   ├── annotate-terminal.md  # Terminal feedback mode
 │   └── annotate-browser.md   # Browser feedback mode
 ├── server/                   # Browser annotation UI
 │   ├── server.js             # Zero-dep HTTP server (node:http)
 │   ├── index.html            # Annotation SPA
 │   └── styles.css
 ├── lib/                      # JS utilities (file I/O only, no API calls)
-│   ├── parser.js             # Text segmentation + annotation parsing
+│   ├── parser.js             # Text tokenization + annotation parsing
 │   ├── guide-builder.js      # Draft JSON + guide update prompts
 │   └── versioner.js          # Guide versioning + lock management
 ├── templates/

@@ -15,10 +15,7 @@ describe('browser annotation integration', () => {
       path.join(TEST_DIR, 'current-draft.json'),
       JSON.stringify({
         output_type: 'tweet',
-        segments: [
-          { index: 0, text: 'Hello world.', words: ['Hello', 'world.'] },
-          { index: 1, text: 'Test sentence.', words: ['Test', 'sentence.'] },
-        ],
+        words: ['Hello', 'world.', 'Test', 'sentence.'],
         raw: 'Hello world. Test sentence.',
       })
     );
@@ -41,8 +38,8 @@ describe('browser annotation integration', () => {
   it('accepts well-formed annotation and writes correct JSONL', async () => {
     server = await startServer(TEST_DIR, 0);
     const annotation = {
-      segment: 0,
-      words: [0, 0],
+      start: 0,
+      end: 0,
       text: 'Hello',
       action: 'dislike',
       comment: 'too generic',
@@ -55,8 +52,8 @@ describe('browser annotation integration', () => {
     assert.equal(res.status, 200);
     const lines = fs.readFileSync(path.join(TEST_DIR, 'annotations.jsonl'), 'utf-8').trim().split('\n');
     const parsed = JSON.parse(lines[0]);
-    assert.equal(parsed.segment, 0);
-    assert.deepEqual(parsed.words, [0, 0]);
+    assert.equal(parsed.start, 0);
+    assert.equal(parsed.end, 0);
     assert.equal(parsed.action, 'dislike');
     assert.equal(parsed.comment, 'too generic');
   });
@@ -64,8 +61,8 @@ describe('browser annotation integration', () => {
   it('accumulates multiple annotations in JSONL', async () => {
     server = await startServer(TEST_DIR, 0);
     const url = `http://localhost:${server.port}/api/annotate`;
-    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ segment: 0, words: [0, 0], text: 'Hello', action: 'like' }) });
-    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ segment: 1, words: [0, 1], text: 'Test sentence.', action: 'dislike' }) });
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 0, end: 0, text: 'Hello', action: 'like' }) });
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 2, end: 3, text: 'Test sentence.', action: 'dislike' }) });
     const lines = fs.readFileSync(path.join(TEST_DIR, 'annotations.jsonl'), 'utf-8').trim().split('\n');
     assert.equal(lines.length, 2);
   });

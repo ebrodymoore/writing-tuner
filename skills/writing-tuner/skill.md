@@ -76,12 +76,12 @@ If `lock_acquired` is false, check if stale and offer force-unlock.
 
 If samples were provided, analyze them and update the guide. **First read `./writing-guides/guide-draft.md` using the Read tool**, then use the **Write tool** to write the updated version back. The Read must happen before the Write or it will fail.
 
-**Step 6: Generate the first draft and segment it.**
+**Step 6: Generate the first draft and prepare it.**
 
-Either ask for a writing prompt or generate one based on the output type. Then segment:
+Either ask for a writing prompt or generate one based on the output type. Then prepare:
 
 ```bash
-node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
+node {CLI} prepare "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
 **Step 7: Start the browser annotation server.**
@@ -92,7 +92,7 @@ node {CLI} server-start
 
 Tell the user ONLY: "Open http://localhost:PORT to annotate your text. Click on words or phrases to mark what you like, dislike, or want changed. Type `done` here when finished."
 
-Do NOT show segment numbers, list the text, or mention segmentation. The browser shows the text naturally.
+Do NOT list the text or show word counts. The browser shows the text naturally.
 
 ### Resume Session (`/writing-tuner --guide <path>`)
 
@@ -103,13 +103,13 @@ Do NOT show segment numbers, list the text, or mention segmentation. The browser
 
 ### SEED + DRAFT
 
-User provides a prompt or pastes existing writing. After generating/accepting, segment it:
+User provides a prompt or pastes existing writing. After generating/accepting, prepare it:
 
 ```bash
-node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
+node {CLI} prepare "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
-Then start/restart the server if not already running, and tell the user to open the URL. Do NOT show segments or mention segmentation.
+Then start/restart the server if not already running, and tell the user to open the URL.
 
 ### ANNOTATE
 
@@ -157,11 +157,11 @@ Present the proof sample. Then **use AskUserQuestion:**
 (User can select "Other" to annotate a different doc or paste their own writing)
 
 Handle the selection:
-- **Accept** → go to SAVE
-- **Annotate** → segment the proof sample, update the browser, back to ANNOTATE
-- **Compare variants** → generate 2-3 versions, let user pick best, then offer this menu again
-- **Test another prompt** → ask for a prompt, generate using guide, then offer this menu again
-- **Other** → generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE
+- **Accept** -> go to SAVE
+- **Annotate** -> prepare the proof sample, update the browser, back to ANNOTATE
+- **Compare variants** -> generate 2-3 versions, let user pick best, then offer this menu again
+- **Test another prompt** -> ask for a prompt, generate using guide, then offer this menu again
+- **Other** -> generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE
 
 ### SAVE
 
@@ -171,7 +171,7 @@ On accept:
 node {CLI} save-version
 ```
 
-This saves the versioned guide, releases the lock, and cleans up the session — all in one command.
+This saves the versioned guide, releases the lock, and cleans up the session -- all in one command.
 
 Report to user:
 - Guide saved: `./writing-guides/guide-vN.md`
@@ -180,7 +180,7 @@ Report to user:
 
 ## Error Recovery
 
-- **Draft exists on startup:** `setup` returns `guide_state: "draft-exists"` — MUST use AskUserQuestion
+- **Draft exists on startup:** `setup` returns `guide_state: "draft-exists"` -- MUST use AskUserQuestion
 - **Browser server fails to start:** tell user and ask them to check Node.js is installed
-- **Stale lock:** `setup` returns `lock_acquired: false` — check if stale, offer force-unlock
-- **Invalid annotations:** `extract` returns warnings — tell user, continue
+- **Stale lock:** `setup` returns `lock_acquired: false` -- check if stale, offer force-unlock
+- **Invalid annotations:** `extract` returns warnings -- tell user, continue

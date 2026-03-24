@@ -16,11 +16,11 @@ function teardown() {
 
 describe('buildDraftJson', () => {
   it('returns correct structure with all fields', () => {
-    const segments = [{ text: 'Hello world', start: 0, end: 11 }];
-    const result = buildDraftJson('email', segments, 'Hello world');
+    const words = ['Hello', 'world'];
+    const result = buildDraftJson('email', words, 'Hello world');
     assert.deepEqual(result, {
       output_type: 'email',
-      segments,
+      words,
       raw: 'Hello world',
     });
   });
@@ -30,10 +30,10 @@ describe('buildDraftJson', () => {
     assert.equal(result.output_type, 'blog-post');
   });
 
-  it('preserves segments array reference', () => {
-    const segments = [{ text: 'a' }, { text: 'b' }];
-    const result = buildDraftJson('memo', segments, 'ab');
-    assert.equal(result.segments, segments);
+  it('preserves words array reference', () => {
+    const words = ['a', 'b'];
+    const result = buildDraftJson('memo', words, 'a b');
+    assert.equal(result.words, words);
   });
 
   it('preserves raw string', () => {
@@ -42,9 +42,9 @@ describe('buildDraftJson', () => {
     assert.equal(result.raw, raw);
   });
 
-  it('handles empty segments array', () => {
+  it('handles empty words array', () => {
     const result = buildDraftJson('email', [], 'raw');
-    assert.deepEqual(result.segments, []);
+    assert.deepEqual(result.words, []);
   });
 });
 
@@ -53,30 +53,30 @@ describe('writeDraftJson', () => {
   afterEach(teardown);
 
   it('writes current-draft.json to sessionDir', () => {
-    const segments = [{ text: 'Hello', start: 0, end: 5 }];
-    writeDraftJson(TEST_DIR, 'email', segments, 'Hello');
+    const words = ['Hello'];
+    writeDraftJson(TEST_DIR, 'email', words, 'Hello');
     const filePath = path.join(TEST_DIR, 'current-draft.json');
     assert.ok(fs.existsSync(filePath), 'current-draft.json should exist');
   });
 
   it('written file contains correct JSON structure', () => {
-    const segments = [{ text: 'Test segment', start: 0, end: 12 }];
-    writeDraftJson(TEST_DIR, 'memo', segments, 'Test segment');
+    const words = ['Test', 'text'];
+    writeDraftJson(TEST_DIR, 'memo', words, 'Test text');
     const filePath = path.join(TEST_DIR, 'current-draft.json');
     const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     assert.deepEqual(parsed, {
       output_type: 'memo',
-      segments,
-      raw: 'Test segment',
+      words,
+      raw: 'Test text',
     });
   });
 
   it('returns the draft object', () => {
-    const segments = [{ text: 'x' }];
-    const result = writeDraftJson(TEST_DIR, 'letter', segments, 'x');
+    const words = ['x'];
+    const result = writeDraftJson(TEST_DIR, 'letter', words, 'x');
     assert.deepEqual(result, {
       output_type: 'letter',
-      segments,
+      words,
       raw: 'x',
     });
   });
@@ -92,7 +92,7 @@ describe('writeDraftJson', () => {
 
   it('overwrites existing current-draft.json', () => {
     writeDraftJson(TEST_DIR, 'email', [], 'first');
-    writeDraftJson(TEST_DIR, 'memo', [{ text: 'second' }], 'second');
+    writeDraftJson(TEST_DIR, 'memo', ['second'], 'second');
     const parsed = JSON.parse(
       fs.readFileSync(path.join(TEST_DIR, 'current-draft.json'), 'utf-8')
     );

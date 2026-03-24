@@ -2,10 +2,10 @@
 
 ## Prerequisites
 
-Ensure `current-draft.json` exists in the session directory (written by the `segment` command during DRAFT). If not:
+Ensure `current-draft.json` exists in the session directory (written by the `prepare` command during DRAFT). If not:
 
 ```bash
-node {CLI} segment "THE DRAFT TEXT" "OUTPUT_TYPE"
+node {CLI} prepare "THE DRAFT TEXT" "OUTPUT_TYPE"
 ```
 
 ## Starting the Server
@@ -31,10 +31,3 @@ When the user types `done`:
 
 1. Stop the server (kill the background process)
 2. Proceed to the EXTRACT step — run `node {CLI} extract`
-
-## Switching to Terminal Mode
-
-If the user types `t`:
-1. Stop the server
-2. Existing annotations are preserved
-3. Read `annotate-terminal.md` and follow it
