@@ -154,36 +154,6 @@ switch (command) {
     break;
   }
 
-  // ── SAVE-DRAFT ─────────────────────────────────────────
-  // Saves updated guide content to guide-draft.md.
-  // Reads from --file path OR stdin (piped). Never pass guide content as a CLI arg
-  // because multi-line markdown with # characters triggers security warnings.
-  //
-  // Usage:
-  //   node bin/cli.js save-draft --file /tmp/guide-update.md
-  //   echo "guide content" | node bin/cli.js save-draft
-  case 'save-draft': {
-    const guideDir = getArg(args, '--guide-dir', './writing-guides');
-    const filePath = getArg(args, '--file', null);
-
-    let content;
-    if (filePath) {
-      content = fs.readFileSync(filePath, 'utf-8');
-    } else {
-      // Read from stdin
-      const chunks = [];
-      for await (const chunk of process.stdin) {
-        chunks.push(chunk);
-      }
-      content = Buffer.concat(chunks).toString('utf-8');
-    }
-
-    const { saveDraft } = await import(path.join(ROOT, 'lib', 'versioner.js'));
-    saveDraft(guideDir, content);
-    console.log('ok');
-    break;
-  }
-
   // ── SAVE-VERSION ───────────────────────────────────────
   // Saves final version, releases lock, cleans up session.
   // Single command replaces: node -e "saveVersion + releaseLock" + rm -rf .session
@@ -255,6 +225,6 @@ switch (command) {
 
   default:
     console.error(`Unknown command: ${command}`);
-    console.error('Commands: setup, segment, annotate, extract, update-prompt, save-draft, save-version, server-start, root');
+    console.error('Commands: setup, segment, annotate, extract, update-prompt, save-version, server-start, root');
     process.exit(1);
 }

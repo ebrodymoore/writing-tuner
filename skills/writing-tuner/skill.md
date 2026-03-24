@@ -94,7 +94,7 @@ Tell the user the URL from the JSON output.
 
 **Step 7: Seed guide from samples (if provided).**
 
-If samples were provided, analyze them and write initial preferences into the guide draft.
+If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
 
 Then proceed directly to DRAFT.
 
@@ -142,14 +142,7 @@ Then get the guide update prompt:
 node {CLI} update-prompt --annotations-json 'THE_EXTRACT_OUTPUT'
 ```
 
-Use that prompt to generate an updated guide. Save it by writing to a temp file:
-
-```bash
-cat <<'GUIDE_EOF' > /tmp/writing-tuner-draft.md
-(your updated guide markdown here)
-GUIDE_EOF
-node {CLI} save-draft --file /tmp/writing-tuner-draft.md
-```
+Use that prompt to generate an updated guide. **Save it using the Write tool** — write directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI save-draft command or temp files.
 
 Tell the user what preferences were extracted (2-3 sentence summary).
 
