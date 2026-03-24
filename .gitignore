@@ -3,3 +3,4 @@ node_modules/
 guide-draft.md
 *.jsonl
 .server-info
+.wt-root

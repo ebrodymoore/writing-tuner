@@ -9,17 +9,15 @@ You are orchestrating an iterative writing refinement session. The user will giv
 
 ## Path Resolution
 
-This skill file lives at `skills/writing-tuner/skill.md` inside the writing-tuner repo. The CLI and all JS utilities are in the same repo.
+The writing-tuner repo root is stored in `skills/writing-tuner/.wt-root`. Read it:
 
-**Set `WT` to the repo root — it's always two directories up from this skill file:**
-
-```
-WT = (directory containing this skill.md) / ../../
+```bash
+WT=$(cat skills/writing-tuner/.wt-root 2>/dev/null || echo "")
 ```
 
-To resolve: read this skill file's path (you know it because you just loaded it), go up two levels. For example if this file is at `/Users/me/writing-tuner/skills/writing-tuner/skill.md`, then `WT=/Users/me/writing-tuner`.
+If empty, the user needs to run setup: `node /path/to/writing-tuner/bin/setup.js`
 
-**Do NOT run `find` commands to locate the repo.** You already know where this file is.
+**Do NOT run `find` commands. Do NOT search the filesystem. Just read `.wt-root`.**
 
 All commands below use `$WT`. Guide files live in the user's cwd at `./writing-guides/`.
 
