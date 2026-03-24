@@ -158,26 +158,26 @@
         else return;
       }
       if (!el.classList.contains('word')) return;
-      const seg = parseInt(el.dataset.seg, 10);
-      if (selectedWords.length > 0 && selectedWords[0].segIdx !== seg) return;
 
-      const curIdx = parseInt(el.dataset.word, 10);
-
-      // Fill in any skipped words between last selected and current
+      // Allow cross-segment selection — get all word spans in document order
+      // and select everything between the first selected word and the current one
       if (selectedWords.length > 0) {
-        const lastIdx = selectedWords[selectedWords.length - 1].wordIdx;
-        if (curIdx !== lastIdx) {
-          const container = el.parentNode;
-          const lo = Math.min(lastIdx, curIdx);
-          const hi = Math.max(lastIdx, curIdx);
-          for (let i = lo; i <= hi; i++) {
-            const mid = container.querySelector(`.word[data-seg="${seg}"][data-word="${i}"]`);
-            if (mid) addToSelection(mid);
-          }
-        }
-      }
+        const allWords = [...document.querySelectorAll('#draft-container .word')];
+        const firstEl = selectedWords[0].el;
+        const firstPos = allWords.indexOf(firstEl);
+        const curPos = allWords.indexOf(el);
+        if (firstPos === -1 || curPos === -1) return;
 
-      addToSelection(el);
+        const lo = Math.min(firstPos, curPos);
+        const hi = Math.max(firstPos, curPos);
+
+        // Select all words between first and current (inclusive)
+        for (let i = lo; i <= hi; i++) {
+          addToSelection(allWords[i]);
+        }
+      } else {
+        addToSelection(el);
+      }
     });
 
     function onMouseUp() {
@@ -295,33 +295,46 @@
     async function submitAnnotation(action) {
       if (selectedWords.length === 0) return;
 
-      const segIdx = selectedWords[0].segIdx;
-      const wordIndices = selectedWords.map(w => w.wordIdx).sort((a, b) => a - b);
-      const text = wordIndices
-        .map(i => draft.segments[segIdx].words[i])
-        .join(' ');
       const comment = document.getElementById('comment-input').value.trim();
       const replacement = document.getElementById('suggest-input').value.trim();
 
-      const annotation = {
-        segment: segIdx,
-        words: [wordIndices[0], wordIndices[wordIndices.length - 1]],
-        text: text,
-        action: action,
-      };
-      if (comment) annotation.comment = comment;
-      if (replacement) annotation.replacement = replacement;
+      // Group selected words by segment for cross-segment support
+      const bySegment = new Map();
+      for (const w of selectedWords) {
+        if (!bySegment.has(w.segIdx)) bySegment.set(w.segIdx, []);
+        bySegment.get(w.segIdx).push(w);
+      }
 
-      // Post to server
-      await fetch('/api/annotate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(annotation),
-      });
+      // Create one annotation per segment, post all of them
+      const allKeys = [];
+      for (const [segIdx, words] of bySegment) {
+        const wordIndices = words.map(w => w.wordIdx).sort((a, b) => a - b);
+        const text = wordIndices
+          .map(i => draft.segments[segIdx].words[i])
+          .join(' ');
 
-      // Store in client-side map
-      const key = segIdx + ':' + wordIndices[0] + '-' + wordIndices[wordIndices.length - 1];
-      annotationMap.set(key, annotation);
+        const annotation = {
+          segment: segIdx,
+          words: [wordIndices[0], wordIndices[wordIndices.length - 1]],
+          text: text,
+          action: action,
+        };
+        if (comment) annotation.comment = comment;
+        if (replacement) annotation.replacement = replacement;
+
+        await fetch('/api/annotate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(annotation),
+        });
+
+        const key = segIdx + ':' + wordIndices[0] + '-' + wordIndices[wordIndices.length - 1];
+        annotationMap.set(key, annotation);
+        allKeys.push(key);
+      }
+
+      // Use first key as the primary for reopening
+      const key = allKeys[0];
 
       // Apply visual feedback
       const cssClass =
@@ -395,11 +408,15 @@
       document.getElementById('done-bar').style.display = 'none';
     }
 
-    // Close toolbar when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('#toolbar') && !e.target.classList.contains('word')) {
-        clearSelection();
-      }
+    // Close toolbar when clicking outside — use mousedown so it fires
+    // BEFORE the drag cycle, not after (click fires after mouseup and
+    // would immediately dismiss the toolbar that onMouseUp just showed)
+    document.addEventListener('mousedown', (e) => {
+      if (isSelecting) return; // don't dismiss during active drag
+      if (e.target.closest('#toolbar')) return; // don't dismiss when clicking toolbar
+      if (e.target.classList.contains('word')) return; // word clicks handled by onWordMouseDown
+      if (e.target.classList.contains('word-space')) return; // spaces between words
+      clearSelection();
     });
 
     init();
