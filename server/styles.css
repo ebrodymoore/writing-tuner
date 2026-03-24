@@ -12,74 +12,140 @@ body {
 h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #fff; }
 .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
 
+/* Draft container — natural flowing text */
 #draft-container {
   background: #16213e;
   border-radius: 8px;
-  padding: 1.5rem;
-  line-height: 2;
+  padding: 1.5rem 2rem;
+  line-height: 1.8;
   font-size: 1.1rem;
 }
 
+#draft-container p {
+  margin-bottom: 1rem;
+}
+#draft-container p:last-child {
+  margin-bottom: 0;
+}
+
+/* Words — clickable spans */
 .word {
   cursor: pointer;
-  padding: 2px 1px;
+  padding: 2px 0;
   border-radius: 3px;
   transition: background 0.15s;
+  position: relative;
 }
-.word:hover { background: rgba(100, 108, 255, 0.2); }
+.word:hover { background: rgba(100, 108, 255, 0.15); }
 .word.selected { background: rgba(100, 108, 255, 0.4); outline: 1px solid #646cff; }
+
+/* Annotation highlight colors */
 .word.liked { background: rgba(74, 222, 128, 0.25); }
 .word.disliked { background: rgba(248, 113, 113, 0.25); }
 .word.suggested { background: rgba(250, 204, 21, 0.25); }
+.word.commented { background: rgba(96, 165, 250, 0.25); }
 
-.segment { margin-bottom: 0.5rem; }
-.segment-num {
-  display: inline-block;
-  width: 2rem;
-  color: #555;
-  font-size: 0.8rem;
-  text-align: right;
-  margin-right: 0.5rem;
-  user-select: none;
+/* Annotated words get a subtle underline */
+.word.has-annotation {
+  border-bottom: 2px dotted rgba(255, 255, 255, 0.3);
+  cursor: pointer;
 }
 
+/* Tooltip on hover for annotated words */
+.word[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f3460;
+  border: 1px solid #646cff;
+  color: #e0e0e0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: pre-line;
+  max-width: 250px;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  line-height: 1.4;
+}
+
+/* Annotation toolbar */
 #toolbar {
   display: none;
   position: fixed;
   background: #0f3460;
   border: 1px solid #646cff;
   border-radius: 8px;
-  padding: 0.5rem;
-  gap: 0.5rem;
+  padding: 0.75rem;
+  gap: 0.6rem;
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  width: 320px;
 }
 #toolbar.visible { display: flex; flex-direction: column; }
-#toolbar .actions { display: flex; gap: 0.5rem; }
+
+#toolbar .selected-text {
+  font-size: 0.8rem;
+  color: #888;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #1a1a2e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#toolbar .input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+#toolbar .input-row label {
+  font-size: 0.75rem;
+  color: #888;
+  min-width: 60px;
+}
+
+#toolbar input {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  flex: 1;
+}
+#toolbar input:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+#toolbar .actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
 
 #toolbar button {
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.7rem;
   border: 1px solid #333;
   border-radius: 4px;
   background: #1a1a2e;
   color: #e0e0e0;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  flex: 1;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
 }
 #toolbar button:hover { background: #333; }
-#toolbar button.like-btn:hover { background: rgba(74, 222, 128, 0.3); }
-#toolbar button.dislike-btn:hover { background: rgba(248, 113, 113, 0.3); }
+#toolbar button.like-btn:hover, #toolbar button.like-btn.active { background: rgba(74, 222, 128, 0.3); border-color: #4ade80; }
+#toolbar button.dislike-btn:hover, #toolbar button.dislike-btn.active { background: rgba(248, 113, 113, 0.3); border-color: #f87171; }
+#toolbar button.comment-btn:hover, #toolbar button.comment-btn.active { background: rgba(96, 165, 250, 0.3); border-color: #60a5fa; }
 
-#toolbar input, #toolbar textarea {
-  background: #1a1a2e;
-  border: 1px solid #333;
-  border-radius: 4px;
-  color: #e0e0e0;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-  width: 100%;
-}
-
+/* Done bar */
 #done-bar {
   margin-top: 2rem;
   text-align: center;

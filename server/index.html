@@ -14,26 +14,35 @@
   <div id="done-bar"><button id="done-btn">Done</button></div>
 
   <div id="toolbar">
+    <div class="selected-text" id="selected-text"></div>
+    <div class="input-row">
+      <label>Comment</label>
+      <input id="comment-input" type="text" placeholder="Why do you feel this way?">
+    </div>
+    <div class="input-row">
+      <label>Suggest</label>
+      <input id="suggest-input" type="text" placeholder="Replacement text">
+    </div>
     <div class="actions">
       <button class="like-btn" id="like-btn">&#x1f44d; Like</button>
       <button class="dislike-btn" id="dislike-btn">&#x1f44e; Dislike</button>
-    </div>
-    <input id="comment-input" type="text" placeholder="Comment (optional)">
-    <div style="display:flex;gap:0.5rem;">
-      <input id="suggest-input" type="text" placeholder="Suggest replacement (optional)">
-      <button id="suggest-btn" style="white-space:nowrap;">Suggest</button>
+      <button class="comment-btn" id="comment-btn">&#x1f4ac; Comment</button>
     </div>
   </div>
 
   <script>
     let draft = null;
-    let selectedWords = [];
+    let selectedWords = []; // [{segIdx, wordIdx, el}]
     let annotationCount = 0;
     let isSelecting = false;
+    let editingKey = null; // non-null when re-opening an existing annotation
 
-    document.getElementById('like-btn').addEventListener('click', () => annotate('like'));
-    document.getElementById('dislike-btn').addEventListener('click', () => annotate('dislike'));
-    document.getElementById('suggest-btn').addEventListener('click', () => annotate('suggest'));
+    // Client-side annotation store: key -> annotation object
+    const annotationMap = new Map();
+
+    document.getElementById('like-btn').addEventListener('click', () => submitAnnotation('like'));
+    document.getElementById('dislike-btn').addEventListener('click', () => submitAnnotation('dislike'));
+    document.getElementById('comment-btn').addEventListener('click', () => submitAnnotation('comment'));
     document.getElementById('done-btn').addEventListener('click', signalDone);
 
     async function init() {
@@ -45,13 +54,34 @@
     function render() {
       const container = document.getElementById('draft-container');
       container.textContent = '';
+
+      // Detect paragraph breaks from raw text
+      const paragraphs = draft.raw.split(/\n\s*\n/);
+      let segIdx = 0;
+      let globalWordCount = 0;
+
+      // Map raw paragraphs to segments
+      // Simple approach: render all segments as flowing inline text
+      // Use raw newlines for paragraph detection
+      let currentP = document.createElement('p');
+      container.appendChild(currentP);
+
       for (const seg of draft.segments) {
-        const div = document.createElement('div');
-        div.className = 'segment';
-        const num = document.createElement('span');
-        num.className = 'segment-num';
-        num.textContent = String(seg.index + 1);
-        div.appendChild(num);
+        // Check if this segment starts a new paragraph by checking raw text
+        // Simple heuristic: if the text before this segment has a double newline
+        if (seg.index > 0) {
+          const prevEnd = draft.raw.indexOf(draft.segments[seg.index - 1].text)
+            + draft.segments[seg.index - 1].text.length;
+          const currStart = draft.raw.indexOf(seg.text, prevEnd);
+          if (currStart > prevEnd) {
+            const between = draft.raw.slice(prevEnd, currStart);
+            if (between.includes('\n\n') || between.includes('\n \n')) {
+              currentP = document.createElement('p');
+              container.appendChild(currentP);
+            }
+          }
+        }
+
         for (let i = 0; i < seg.words.length; i++) {
           const span = document.createElement('span');
           span.className = 'word';
@@ -60,28 +90,46 @@
           span.dataset.word = String(i);
           span.addEventListener('mousedown', onWordMouseDown);
           span.addEventListener('mouseenter', onWordMouseEnter);
-          div.appendChild(span);
+          currentP.appendChild(span);
+
           if (i < seg.words.length - 1) {
-            div.appendChild(document.createTextNode(' '));
+            currentP.appendChild(document.createTextNode(' '));
           }
         }
-        container.appendChild(div);
+
+        // Add space between segments (within same paragraph)
+        currentP.appendChild(document.createTextNode(' '));
       }
+
       document.addEventListener('mouseup', onMouseUp);
     }
 
     function onWordMouseDown(e) {
+      const el = e.target;
+      if (!el.classList.contains('word')) return;
       e.preventDefault();
+
+      // If clicking an annotated word, re-open its annotation
+      if (el.classList.contains('has-annotation')) {
+        const key = el.dataset.annotationKey;
+        if (key && annotationMap.has(key)) {
+          reopenAnnotation(key, el);
+          return;
+        }
+      }
+
       clearSelection();
       isSelecting = true;
-      addToSelection(e.target);
+      addToSelection(el);
     }
 
     function onWordMouseEnter(e) {
       if (!isSelecting) return;
-      const seg = parseInt(e.target.dataset.seg, 10);
+      const el = e.target;
+      if (!el.classList.contains('word')) return;
+      const seg = parseInt(el.dataset.seg, 10);
       if (selectedWords.length > 0 && selectedWords[0].segIdx !== seg) return;
-      addToSelection(e.target);
+      addToSelection(el);
     }
 
     function onMouseUp() {
@@ -105,30 +153,88 @@
     function clearSelection() {
       for (const w of selectedWords) w.el.classList.remove('selected');
       selectedWords = [];
+      editingKey = null;
       hideToolbar();
     }
 
-    function showToolbar() {
+    function showToolbar(prefill) {
       const toolbar = document.getElementById('toolbar');
+      const commentInput = document.getElementById('comment-input');
+      const suggestInput = document.getElementById('suggest-input');
+      const selectedTextEl = document.getElementById('selected-text');
+
+      // Show selected text
+      const text = selectedWords.map(w =>
+        draft.segments[w.segIdx].words[w.wordIdx]
+      ).join(' ');
+      selectedTextEl.textContent = '"' + text + '"';
+
+      // Pre-fill if editing existing annotation
+      if (prefill) {
+        commentInput.value = prefill.comment || '';
+        suggestInput.value = prefill.replacement || '';
+        // Highlight the active action button
+        document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
+        if (prefill.action === 'like') document.getElementById('like-btn').classList.add('active');
+        if (prefill.action === 'dislike') document.getElementById('dislike-btn').classList.add('active');
+        if (prefill.action === 'comment') document.getElementById('comment-btn').classList.add('active');
+      } else {
+        commentInput.value = '';
+        suggestInput.value = '';
+        document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
+      }
+
+      // Position toolbar near selection
       const last = selectedWords[selectedWords.length - 1].el;
       const rect = last.getBoundingClientRect();
-      toolbar.style.top = (rect.bottom + 8) + 'px';
-      toolbar.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+      toolbar.style.top = (rect.bottom + 8 + window.scrollY) + 'px';
+      toolbar.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
       toolbar.classList.add('visible');
+
+      commentInput.focus();
     }
 
     function hideToolbar() {
-      document.getElementById('toolbar').classList.remove('visible');
+      const toolbar = document.getElementById('toolbar');
+      toolbar.classList.remove('visible');
       document.getElementById('comment-input').value = '';
       document.getElementById('suggest-input').value = '';
+      document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
     }
 
-    async function annotate(action) {
+    function reopenAnnotation(key, clickedEl) {
+      const ann = annotationMap.get(key);
+      if (!ann) return;
+
+      clearSelection();
+
+      // Re-select the annotated words
+      const seg = draft.segments[ann.segment];
+      const [start, end] = ann.words;
+      const container = document.getElementById('draft-container');
+      const wordSpans = container.querySelectorAll(
+        `span.word[data-seg="${ann.segment}"]`
+      );
+
+      for (const span of wordSpans) {
+        const wIdx = parseInt(span.dataset.word, 10);
+        if (wIdx >= start && wIdx <= end) {
+          selectedWords.push({ segIdx: ann.segment, wordIdx: wIdx, el: span });
+          span.classList.add('selected');
+        }
+      }
+
+      editingKey = key;
+      showToolbar(ann);
+    }
+
+    async function submitAnnotation(action) {
       if (selectedWords.length === 0) return;
+
       const segIdx = selectedWords[0].segIdx;
-      const wordIndices = selectedWords.map((w) => w.wordIdx).sort((a, b) => a - b);
+      const wordIndices = selectedWords.map(w => w.wordIdx).sort((a, b) => a - b);
       const text = wordIndices
-        .map((i) => draft.segments[segIdx].words[i])
+        .map(i => draft.segments[segIdx].words[i])
         .join(' ');
       const comment = document.getElementById('comment-input').value.trim();
       const replacement = document.getElementById('suggest-input').value.trim();
@@ -140,24 +246,52 @@
         action: action,
       };
       if (comment) annotation.comment = comment;
-      if (replacement && action === 'suggest') annotation.replacement = replacement;
+      if (replacement) annotation.replacement = replacement;
 
+      // Post to server
       await fetch('/api/annotate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(annotation),
       });
 
+      // Store in client-side map
+      const key = segIdx + ':' + wordIndices[0] + '-' + wordIndices[wordIndices.length - 1];
+      annotationMap.set(key, annotation);
+
+      // Apply visual feedback
       const cssClass =
         action === 'like' ? 'liked' :
-        action === 'dislike' ? 'disliked' : 'suggested';
+        action === 'dislike' ? 'disliked' :
+        action === 'comment' ? 'commented' : 'suggested';
+
+      // Build tooltip text
+      const tooltipParts = [];
+      const actionEmoji = action === 'like' ? '\u{1f44d}' : action === 'dislike' ? '\u{1f44e}' : '\u{1f4ac}';
+      tooltipParts.push(actionEmoji + ' ' + (action === 'comment' ? 'Comment' : action.charAt(0).toUpperCase() + action.slice(1)));
+      if (comment) tooltipParts.push('"' + comment + '"');
+      if (replacement) tooltipParts.push('\u270f\ufe0f \u2192 "' + replacement + '"');
+      const tooltipText = tooltipParts.join('\n');
+
       for (const w of selectedWords) {
-        w.el.classList.remove('selected', 'liked', 'disliked', 'suggested');
-        w.el.classList.add(cssClass);
+        w.el.classList.remove('selected', 'liked', 'disliked', 'suggested', 'commented');
+        w.el.classList.add(cssClass, 'has-annotation');
+        w.el.dataset.annotationKey = key;
+
+        // Merge tooltip if word already has one (overlapping annotations)
+        const existing = w.el.getAttribute('data-tooltip');
+        if (existing && editingKey !== key) {
+          w.el.setAttribute('data-tooltip', existing + '\n---\n' + tooltipText);
+        } else {
+          w.el.setAttribute('data-tooltip', tooltipText);
+        }
       }
 
-      annotationCount++;
-      document.getElementById('count').textContent = String(annotationCount);
+      if (!editingKey) {
+        annotationCount++;
+        document.getElementById('count').textContent = String(annotationCount);
+      }
+
       clearSelection();
     }
 
@@ -170,6 +304,13 @@
       container.appendChild(msg);
       document.getElementById('done-bar').style.display = 'none';
     }
+
+    // Close toolbar when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#toolbar') && !e.target.classList.contains('word')) {
+        clearSelection();
+      }
+    });
 
     init();
   </script>
