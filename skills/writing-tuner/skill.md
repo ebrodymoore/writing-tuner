@@ -13,9 +13,7 @@ The CLI path is hardcoded below by the install script. Use this exact path for a
 
 CLI_PATH=/Users/ericbrody-moore/Documents/writing-tuner/bin/cli.js
 
-All commands in this skill use: `node {CLI_PATH} <command> [args]`
-
-**Replace `{CLI}` in all commands below with the CLI_PATH above. Do NOT search the filesystem. Do NOT run `find` or `ls` to locate files. The path is right here.**
+**Replace `{CLI}` in all commands below with the CLI_PATH above. Do NOT search the filesystem. Do NOT run `find` or `ls`. The path is right here.**
 
 ## Session State
 
@@ -26,56 +24,84 @@ All commands in this skill use: `node {CLI_PATH} <command> [args]`
 
 ### New Session (`/writing-tuner`)
 
-**Ask one question at a time. Wait for the user to respond before asking the next.**
+**Step 1: Ask output type using AskUserQuestion tool.**
 
-1. **"What writing output are you tuning for?"**
-   - a) Tweet / short-form social
-   - b) Blog post / newsletter
-   - c) Long-form / essay / story
-   - d) Marketing copy / ads
-   - e) General writing style
+Use AskUserQuestion with:
+- question: "What writing output are you tuning for?"
+- header: "Output"
+- multiSelect: false
+- options:
+  - label: "Tweet / short-form", description: "Tweets, threads, social posts"
+  - label: "Blog / newsletter", description: "Articles, email newsletters"
+  - label: "Long-form", description: "Essays, stories, scripts"
+  - label: "Marketing copy", description: "Ads, landing pages, product descriptions"
 
-   *Wait for response.*
+(User can select "Other" for general writing style)
 
-2. **"Want to upload writing samples to establish your voice? Paste text, reference files, or skip to start from scratch."**
+Wait for response. Map to output_type.
 
-   *Wait for response.*
+**Step 2: Ask about writing samples.**
 
-3. **"Feedback mode?"**
-   - a) Terminal — keyboard shortcuts, fast annotation
-   - b) Browser — click-to-annotate in a local web UI
-   - (You can switch anytime during a session)
+Ask in text: **"Want to upload writing samples to establish your voice? Paste text, reference files, or type 'skip' to start from scratch."**
 
-   *Wait for response.*
+Wait for response.
 
-**After all questions answered, run setup automatically:**
+**Step 3: Ask feedback mode using AskUserQuestion tool.**
+
+Use AskUserQuestion with:
+- question: "Which feedback mode?"
+- header: "Mode"
+- multiSelect: false
+- options:
+  - label: "Terminal", description: "Keyboard shortcuts — fast for short-form"
+  - label: "Browser", description: "Click-to-annotate web UI — better for longer pieces"
+
+Wait for response.
+
+**Step 4: Run setup.**
 
 ```bash
 node {CLI} setup
 ```
 
-This creates the session directory, copies the guide template (if no existing guide), and acquires the lock. Returns JSON with `guide_state`:
-- `"fresh"`: template copied, ready to go
-- `"draft-exists"`: ask user "Found an unsaved draft. Resume or start fresh?"
-- `"latest-exists"`: ask user "Found an existing guide. Use it or start fresh?"
-  - If "use it": `cp ./writing-guides/guide-latest.md ./writing-guides/guide-draft.md`
+**Step 5: MANDATORY — check `guide_state` in the setup response. Do NOT skip this.**
+
+- If `"fresh"`: proceed to step 6
+- If `"draft-exists"`: **STOP. Use AskUserQuestion:**
+  - question: "Found an unsaved draft from a previous session. What would you like to do?"
+  - header: "Draft"
+  - options:
+    - label: "Resume", description: "Pick up where you left off"
+    - label: "Start fresh", description: "Discard old draft and begin new"
+  - If user selects "Start fresh": run `node {CLI} setup --fresh`
+- If `"latest-exists"`: **STOP. Use AskUserQuestion:**
+  - question: "Found an existing writing guide. What would you like to do?"
+  - header: "Guide"
+  - options:
+    - label: "Use it", description: "Continue refining your existing guide"
+    - label: "Start fresh", description: "Begin a new guide from scratch"
+  - If "Use it": `cp ./writing-guides/guide-latest.md ./writing-guides/guide-draft.md`
+  - If "Start fresh": run `node {CLI} setup --fresh`
 
 If `lock_acquired` is false, check if stale and offer force-unlock.
 
-**If browser mode, start the server:**
+**Step 6: Start server if browser mode.**
+
 ```bash
 node {CLI} server-start
 ```
 Tell the user the URL from the JSON output.
 
-If samples were provided, analyze them and write initial preferences into the guide.
+**Step 7: Seed guide from samples (if provided).**
+
+If samples were provided, analyze them and write initial preferences into the guide draft.
 
 Then proceed directly to DRAFT.
 
 ### Resume Session (`/writing-tuner --guide <path>`)
 
 1. Load the specified guide file
-2. Ask for feedback mode (use selector)
+2. Ask for feedback mode (use AskUserQuestion as above)
 3. Run setup + server-start if browser, then go to DRAFT
 
 ## The Loop
@@ -133,21 +159,25 @@ Generate a **fresh** writing sample using ONLY `current_guide` as instructions. 
 
 The user can provide a prompt or let you pick one for the `output_type`.
 
-Present the proof sample. Then ask:
+Present the proof sample. Then **use AskUserQuestion:**
 
-**"What next?"**
-- a) Accept — save guide and exit
-- b) Annotate — mark up this proof sample
-- c) Compare variants — see 2-3 versions side by side
-- d) Test another prompt — different writing task, same guide
-- e) Annotate another doc — generate new writing to annotate
+- question: "What would you like to do next?"
+- header: "Next"
+- multiSelect: false
+- options:
+  - label: "Accept", description: "Save the guide and exit"
+  - label: "Annotate", description: "Mark up this proof sample for another round"
+  - label: "Compare variants", description: "See 2-3 different versions side by side"
+  - label: "Test another prompt", description: "Try a different writing task with same guide"
+
+(User can select "Other" to annotate a different doc or paste their own writing)
 
 Handle the selection:
 - **Accept** → go to SAVE
 - **Annotate** → back to ANNOTATE with the proof sample
 - **Compare variants** → generate 2-3 versions, let user pick best, then offer this menu again
 - **Test another prompt** → ask for a prompt, generate using guide, then offer this menu again
-- **Annotate another doc** → generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE. User can also paste their own writing if they prefer.
+- **Other** → generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE
 
 ### SAVE
 
@@ -166,7 +196,7 @@ Report to user:
 
 ## Error Recovery
 
-- **Draft exists on startup:** `setup` returns `guide_state: "draft-exists"` — ask user
+- **Draft exists on startup:** `setup` returns `guide_state: "draft-exists"` — MUST use AskUserQuestion
 - **Browser server fails:** fall back to terminal mode, notify user
 - **Stale lock:** `setup` returns `lock_acquired: false` — check if stale, offer force-unlock
 - **Invalid annotations:** `extract` returns warnings — tell user, continue

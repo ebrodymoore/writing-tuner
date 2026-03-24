@@ -35,31 +35,38 @@ switch (command) {
 
   // ── SETUP ──────────────────────────────────────────────
   // Creates session dir, copies template if no guide exists, acquires lock.
-  // Single command replaces: mkdir + cp + sed + node -e acquireLock
+  // Pass --fresh to wipe stale state and start clean.
   case 'setup': {
     const guideDir = getArg(args, '--guide-dir', './writing-guides');
     const templatePath = getArg(args, '--template-path',
       path.join(ROOT, 'templates', 'guide-template.md'));
     const sessionDir = path.join(guideDir, '.session');
+    const fresh = args.includes('--fresh');
 
-    fs.mkdirSync(sessionDir, { recursive: true });
+    const { acquireLock } = await import(path.join(ROOT, 'lib', 'versioner.js'));
 
-    const { acquireLock, loadDraft } = await import(path.join(ROOT, 'lib', 'versioner.js'));
-
-    // Check for existing state
     const latestPath = path.join(guideDir, 'guide-latest.md');
     const draftPath = path.join(guideDir, 'guide-draft.md');
     let guideState = 'fresh';
 
-    if (fs.existsSync(draftPath)) {
-      guideState = 'draft-exists';
-    } else if (fs.existsSync(latestPath)) {
-      guideState = 'latest-exists';
-    } else {
+    if (fresh) {
+      // Wipe stale state
+      if (fs.existsSync(draftPath)) fs.unlinkSync(draftPath);
+      if (fs.existsSync(sessionDir)) fs.rmSync(sessionDir, { recursive: true, force: true });
+    }
+
+    fs.mkdirSync(sessionDir, { recursive: true });
+
+    if (fresh || (!fs.existsSync(draftPath) && !fs.existsSync(latestPath))) {
       // Copy template
       let template = fs.readFileSync(templatePath, 'utf-8');
       template = template.replace('{date}', new Date().toISOString().slice(0, 10));
       fs.writeFileSync(draftPath, template, 'utf-8');
+      guideState = 'fresh';
+    } else if (fs.existsSync(draftPath)) {
+      guideState = 'draft-exists';
+    } else if (fs.existsSync(latestPath)) {
+      guideState = 'latest-exists';
     }
 
     const lockAcquired = acquireLock(guideDir);
@@ -218,76 +225,8 @@ switch (command) {
     break;
   }
 
-  // ── SELECT ─────────────────────────────────────────────
-  // Interactive terminal selector (arrow keys, enter to confirm).
-  // Usage: node bin/cli.js select --prompt "Pick one" --options "A,B,C"
-  // Falls back to printing first option if not a TTY.
-  case 'select': {
-    const prompt = getArg(args, '--prompt', 'Select an option:');
-    const optionsStr = getArg(args, '--options', '');
-    const options = optionsStr.split(',').map(o => o.trim()).filter(o => o.length > 0);
-
-    if (options.length === 0) {
-      console.error('No options provided');
-      process.exit(1);
-    }
-
-    if (!process.stdin.isTTY) {
-      console.log(options[0]);
-      break;
-    }
-
-    let selected = 0;
-
-    function renderMenu() {
-      process.stdout.write(`\x1b[${options.length + 2}A\x1b[J`);
-      process.stdout.write(`\x1b[1m${prompt}\x1b[0m\n`);
-      process.stdout.write('\x1b[2m(↑↓ to move, enter to select)\x1b[0m\n');
-      for (let i = 0; i < options.length; i++) {
-        if (i === selected) {
-          process.stdout.write(`  \x1b[36m❯ ${options[i]}\x1b[0m\n`);
-        } else {
-          process.stdout.write(`    ${options[i]}\n`);
-        }
-      }
-    }
-
-    // Initial draw
-    process.stdout.write(`\x1b[1m${prompt}\x1b[0m\n`);
-    process.stdout.write('\x1b[2m(↑↓ to move, enter to select)\x1b[0m\n');
-    for (let i = 0; i < options.length; i++) {
-      process.stdout.write(i === selected
-        ? `  \x1b[36m❯ ${options[i]}\x1b[0m\n`
-        : `    ${options[i]}\n`);
-    }
-
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-
-    await new Promise((resolve) => {
-      process.stdin.on('data', (key) => {
-        if (key === '\u0003') { process.stdout.write('\n'); process.stdin.setRawMode(false); process.exit(130); }
-        if (key === '\r' || key === '\n') {
-          process.stdin.setRawMode(false);
-          process.stdin.pause();
-          process.stdout.write(`\x1b[${options.length + 2}A\x1b[J`);
-          process.stdout.write(`${prompt} \x1b[36m${options[selected]}\x1b[0m\n`);
-          console.log(options[selected]);
-          resolve();
-          return;
-        }
-        if (key === '\u001b[A' || key === 'k') { selected = (selected - 1 + options.length) % options.length; renderMenu(); }
-        if (key === '\u001b[B' || key === 'j') { selected = (selected + 1) % options.length; renderMenu(); }
-        const num = parseInt(key, 10);
-        if (num >= 1 && num <= options.length) { selected = num - 1; renderMenu(); }
-      });
-    });
-    break;
-  }
-
   default:
     console.error(`Unknown command: ${command}`);
-    console.error('Commands: setup, segment, annotate, extract, update-prompt, save-draft, save-version, server-start, root, select');
+    console.error('Commands: setup, segment, annotate, extract, update-prompt, save-draft, save-version, server-start, root');
     process.exit(1);
 }
