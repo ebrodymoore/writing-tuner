@@ -74,7 +74,7 @@ If `lock_acquired` is false, check if stale and offer force-unlock.
 
 **Step 5: Seed guide from samples (if provided).**
 
-If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
+If samples were provided, analyze them and update the guide. **First read `./writing-guides/guide-draft.md` using the Read tool**, then use the **Write tool** to write the updated version back. The Read must happen before the Write or it will fail.
 
 **Step 6: Generate the first draft and segment it.**
 
@@ -133,7 +133,7 @@ Then get the guide update prompt:
 node {CLI} update-prompt --annotations-json 'THE_EXTRACT_OUTPUT'
 ```
 
-Use that prompt to generate an updated guide. **Save it using the Write tool** — write directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI save-draft command or temp files.
+Use that prompt to generate an updated guide. **First read `./writing-guides/guide-draft.md` using the Read tool**, then use the **Write tool** to save the updated version. The Read must happen before the Write or it will fail.
 
 Tell the user what preferences were extracted (2-3 sentence summary).
 
