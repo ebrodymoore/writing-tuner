@@ -198,6 +198,34 @@ switch (command) {
     break;
   }
 
+  // ── EXPORT ──────────────────────────────────────────────
+  // Exports the guide in agent-consumable formats.
+  case 'export': {
+    const guideDir = getArg(args, '--guide-dir', './writing-guides');
+    const format = getArg(args, '--format', 'system-prompt');
+    const { exportSystemPrompt, exportClaudeMd, parseYamlFrontmatter } =
+      await import(path.join(ROOT, 'lib', 'exporter.js'));
+
+    const guidePath = fs.existsSync(path.join(guideDir, 'guide-latest.md'))
+      ? path.join(guideDir, 'guide-latest.md')
+      : path.join(guideDir, 'guide-draft.md');
+
+    if (!fs.existsSync(guidePath)) {
+      console.error('No guide found to export');
+      process.exit(1);
+    }
+
+    const guide = fs.readFileSync(guidePath, 'utf-8');
+
+    switch (format) {
+      case 'system-prompt': console.log(exportSystemPrompt(guide)); break;
+      case 'claude-md': console.log(exportClaudeMd(guide)); break;
+      case 'metadata': console.log(JSON.stringify(parseYamlFrontmatter(guide))); break;
+      default: console.error(`Unknown format: ${format}`); process.exit(1);
+    }
+    break;
+  }
+
   // ── ROOT ────────────────────────────────────────────────
   // Prints the repo root path. Useful for the skill to resolve paths.
   case 'root': {
@@ -207,6 +235,6 @@ switch (command) {
 
   default:
     console.error(`Unknown command: ${command}`);
-    console.error('Commands: setup, prepare, annotate, extract, update-prompt, save-version, server-start, root');
+    console.error('Commands: setup, prepare, annotate, extract, update-prompt, save-version, export, server-start, root');
     process.exit(1);
 }
