@@ -11,7 +11,6 @@
   <p class="subtitle">Click or drag to select words, then annotate</p>
   <div id="draft-container"></div>
   <p class="annotation-count"><span id="count">0</span> annotations</p>
-  <div id="done-bar"><button id="done-btn">Done</button></div>
 
   <div id="toolbar">
     <div class="selected-text" id="selected-text"></div>
@@ -43,8 +42,6 @@
     document.getElementById('like-btn').addEventListener('click', () => submitAnnotation('like'));
     document.getElementById('dislike-btn').addEventListener('click', () => submitAnnotation('dislike'));
     document.getElementById('comment-btn').addEventListener('click', () => submitAnnotation('comment'));
-    document.getElementById('done-btn').addEventListener('click', signalDone);
-
     async function init() {
       const container = document.getElementById('draft-container');
       const msg = document.createElement('p');
@@ -365,16 +362,6 @@
       }
 
       clearSelection();
-    }
-
-    function signalDone() {
-      const container = document.getElementById('draft-container');
-      container.textContent = '';
-      const msg = document.createElement('p');
-      msg.style.cssText = 'text-align:center;color:#888;padding:3rem;';
-      msg.textContent = 'Done! Return to your terminal and type "done" to continue.';
-      container.appendChild(msg);
-      document.getElementById('done-bar').style.display = 'none';
     }
 
     // Close toolbar when clicking outside — use mousedown so it fires
