@@ -9,25 +9,24 @@ You are orchestrating an iterative writing refinement session. The user will giv
 
 ## Path Resolution
 
-**CRITICAL:** Before doing anything else, find the writing-tuner repo root:
+This skill file lives at `skills/writing-tuner/skill.md` inside the writing-tuner repo. The CLI and all JS utilities are in the same repo.
 
-```bash
-WT="$(dirname "$(dirname "$(find ~/.claude -path '*/writing-tuner/skills/writing-tuner/skill.md' -print -quit 2>/dev/null)")")" && echo "$WT"
+**Set `WT` to the repo root — it's always two directories up from this skill file:**
+
+```
+WT = (directory containing this skill.md) / ../../
 ```
 
-If empty, try:
-```bash
-WT="$(find / -maxdepth 5 -path '*/writing-tuner/bin/cli.js' -print -quit 2>/dev/null | sed 's|/bin/cli.js||')" && echo "$WT"
-```
+To resolve: read this skill file's path (you know it because you just loaded it), go up two levels. For example if this file is at `/Users/me/writing-tuner/skills/writing-tuner/skill.md`, then `WT=/Users/me/writing-tuner`.
 
-All commands below use `$WT` as the repo root. Guide files live in the user's cwd at `./writing-guides/`.
+**Do NOT run `find` commands to locate the repo.** You already know where this file is.
 
-**CLI:** All operations go through `node "$WT/bin/cli.js" <command>` — this keeps permission prompts to a minimum.
+All commands below use `$WT`. Guide files live in the user's cwd at `./writing-guides/`.
 
 ## Session State
 
 Track these:
-- `WT`: absolute path to writing-tuner repo
+- `WT`: absolute path to writing-tuner repo (derived from this skill file's location)
 - `output_type`: tweet | blog-post | long-form | marketing-copy | general
 - `mode`: terminal | browser
 
@@ -171,4 +170,4 @@ Report to user:
 - **Browser server fails:** fall back to terminal mode, notify user
 - **Stale lock:** `setup` returns `lock_acquired: false` — check if stale, offer force-unlock
 - **Invalid annotations:** `extract` returns warnings — tell user, continue
-- **WT not found:** ask user for the path to their writing-tuner clone
+- **WT not found:** derive from this skill file's path (two directories up)
