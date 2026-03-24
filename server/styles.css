@@ -38,6 +38,7 @@ h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #fff; }
 }
 .word:hover { background: rgba(100, 108, 255, 0.15); }
 .word.selected { background: rgba(100, 108, 255, 0.4); outline: 1px solid #646cff; }
+.word-space.selected { background: rgba(100, 108, 255, 0.4); }
 
 /* Annotation highlight colors */
 .word.liked { background: rgba(74, 222, 128, 0.25); }
@@ -50,6 +51,24 @@ h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #fff; }
   border-bottom: 2px dotted rgba(255, 255, 255, 0.3);
   cursor: pointer;
 }
+
+/* Group highlighting — continuous pill shape for multi-word selections */
+.word.group-solo { border-radius: 3px; }
+.word.group-start { border-radius: 3px 0 0 3px; padding-right: 0; }
+.word.group-middle { border-radius: 0; padding-left: 0; padding-right: 0; }
+.word.group-end { border-radius: 0 3px 3px 0; padding-left: 0; }
+
+/* Space spans between words — invisible by default, colored when part of a group */
+.word-space {
+  border-radius: 0;
+}
+.word-space.group-space {
+  border-bottom: 2px dotted rgba(255, 255, 255, 0.3);
+}
+.word-space.liked { background: rgba(74, 222, 128, 0.25); }
+.word-space.disliked { background: rgba(248, 113, 113, 0.25); }
+.word-space.suggested { background: rgba(250, 204, 21, 0.25); }
+.word-space.commented { background: rgba(96, 165, 250, 0.25); }
 
 /* Tooltip on hover for annotated words */
 .word[data-tooltip]:hover::after {

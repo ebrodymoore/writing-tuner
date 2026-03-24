@@ -92,8 +92,14 @@
           span.addEventListener('mouseenter', onWordMouseEnter);
           currentP.appendChild(span);
 
+          // Space between words is a styled span so it can join group highlights
           if (i < seg.words.length - 1) {
-            currentP.appendChild(document.createTextNode(' '));
+            const space = document.createElement('span');
+            space.className = 'word-space';
+            space.textContent = ' ';
+            space.dataset.seg = String(seg.index);
+            space.dataset.afterWord = String(i);
+            currentP.appendChild(space);
           }
         }
 
@@ -147,11 +153,27 @@
       if (!already) {
         selectedWords.push({ segIdx, wordIdx, el });
         el.classList.add('selected');
+
+        // Also highlight the space span connecting to previous selected word
+        if (selectedWords.length > 1) {
+          const prev = selectedWords[selectedWords.length - 2];
+          const minIdx = Math.min(prev.wordIdx, wordIdx);
+          const maxIdx = Math.max(prev.wordIdx, wordIdx);
+          // Highlight all spaces between min and max
+          for (let si = minIdx; si < maxIdx; si++) {
+            const space = el.parentNode.querySelector(
+              `.word-space[data-seg="${segIdx}"][data-after-word="${si}"]`
+            );
+            if (space) space.classList.add('selected');
+          }
+        }
       }
     }
 
     function clearSelection() {
       for (const w of selectedWords) w.el.classList.remove('selected');
+      // Also clear any selected space spans
+      document.querySelectorAll('.word-space.selected').forEach(s => s.classList.remove('selected'));
       selectedWords = [];
       editingKey = null;
       hideToolbar();
@@ -273,17 +295,43 @@
       if (replacement) tooltipParts.push('\u270f\ufe0f \u2192 "' + replacement + '"');
       const tooltipText = tooltipParts.join('\n');
 
-      for (const w of selectedWords) {
-        w.el.classList.remove('selected', 'liked', 'disliked', 'suggested', 'commented');
+      // Sort selected words by index for group styling
+      const sorted = [...selectedWords].sort((a, b) => a.wordIdx - b.wordIdx);
+      const isGroup = sorted.length > 1;
+
+      for (let wi = 0; wi < sorted.length; wi++) {
+        const w = sorted[wi];
+        w.el.classList.remove('selected', 'liked', 'disliked', 'suggested', 'commented',
+          'group-start', 'group-middle', 'group-end', 'group-solo');
         w.el.classList.add(cssClass, 'has-annotation');
         w.el.dataset.annotationKey = key;
 
-        // Merge tooltip if word already has one (overlapping annotations)
+        // Group shape classes for continuous pill highlight
+        if (isGroup) {
+          if (wi === 0) w.el.classList.add('group-start');
+          else if (wi === sorted.length - 1) w.el.classList.add('group-end');
+          else w.el.classList.add('group-middle');
+        } else {
+          w.el.classList.add('group-solo');
+        }
+
+        // Tooltip
         const existing = w.el.getAttribute('data-tooltip');
         if (existing && editingKey !== key) {
           w.el.setAttribute('data-tooltip', existing + '\n---\n' + tooltipText);
         } else {
           w.el.setAttribute('data-tooltip', tooltipText);
+        }
+
+        // Highlight the space span AFTER this word (if next word is also in the group)
+        if (wi < sorted.length - 1) {
+          const spaceSpan = w.el.parentNode.querySelector(
+            `.word-space[data-seg="${w.segIdx}"][data-after-word="${w.wordIdx}"]`
+          );
+          if (spaceSpan) {
+            spaceSpan.classList.remove('liked', 'disliked', 'suggested', 'commented');
+            spaceSpan.classList.add(cssClass, 'group-space');
+          }
         }
       }
 
