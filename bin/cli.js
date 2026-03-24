@@ -43,6 +43,7 @@ switch (command) {
       path.join(ROOT, 'templates', 'guide-template.md'));
     const sessionDir = path.join(guideDir, '.session');
     const fresh = args.includes('--fresh');
+    const outputType = getArg(args, '--output-type', 'general');
 
     const { acquireLock } = await import(path.join(ROOT, 'lib', 'versioner.js'));
 
@@ -62,6 +63,7 @@ switch (command) {
       // Copy template
       let template = fs.readFileSync(templatePath, 'utf-8');
       template = template.replace('{date}', new Date().toISOString().slice(0, 10));
+      template = template.replace(/\{output_type\}/g, outputType);
       fs.writeFileSync(draftPath, template, 'utf-8');
       guideState = 'fresh';
     } else if (fs.existsSync(draftPath)) {
