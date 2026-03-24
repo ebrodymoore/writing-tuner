@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>writing-tuner</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1>writing-tuner</h1>
+  <p class="subtitle">Click or drag to select words, then annotate</p>
+  <div id="draft-container"></div>
+  <p class="annotation-count"><span id="count">0</span> annotations</p>
+  <div id="done-bar"><button id="done-btn">Done</button></div>
+
+  <div id="toolbar">
+    <div class="actions">
+      <button class="like-btn" id="like-btn">&#x1f44d; Like</button>
+      <button class="dislike-btn" id="dislike-btn">&#x1f44e; Dislike</button>
+    </div>
+    <input id="comment-input" type="text" placeholder="Comment (optional)">
+    <div style="display:flex;gap:0.5rem;">
+      <input id="suggest-input" type="text" placeholder="Suggest replacement (optional)">
+      <button id="suggest-btn" style="white-space:nowrap;">Suggest</button>
+    </div>
+  </div>
+
+  <script>
+    let draft = null;
+    let selectedWords = [];
+    let annotationCount = 0;
+    let isSelecting = false;
+
+    document.getElementById('like-btn').addEventListener('click', () => annotate('like'));
+    document.getElementById('dislike-btn').addEventListener('click', () => annotate('dislike'));
+    document.getElementById('suggest-btn').addEventListener('click', () => annotate('suggest'));
+    document.getElementById('done-btn').addEventListener('click', signalDone);
+
+    async function init() {
+      const res = await fetch('/api/draft');
+      draft = await res.json();
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('draft-container');
+      container.textContent = '';
+      for (const seg of draft.segments) {
+        const div = document.createElement('div');
+        div.className = 'segment';
+        const num = document.createElement('span');
+        num.className = 'segment-num';
+        num.textContent = String(seg.index + 1);
+        div.appendChild(num);
+        for (let i = 0; i < seg.words.length; i++) {
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.textContent = seg.words[i];
+          span.dataset.seg = String(seg.index);
+          span.dataset.word = String(i);
+          span.addEventListener('mousedown', onWordMouseDown);
+          span.addEventListener('mouseenter', onWordMouseEnter);
+          div.appendChild(span);
+          if (i < seg.words.length - 1) {
+            div.appendChild(document.createTextNode(' '));
+          }
+        }
+        container.appendChild(div);
+      }
+      document.addEventListener('mouseup', onMouseUp);
+    }
+
+    function onWordMouseDown(e) {
+      e.preventDefault();
+      clearSelection();
+      isSelecting = true;
+      addToSelection(e.target);
+    }
+
+    function onWordMouseEnter(e) {
+      if (!isSelecting) return;
+      const seg = parseInt(e.target.dataset.seg, 10);
+      if (selectedWords.length > 0 && selectedWords[0].segIdx !== seg) return;
+      addToSelection(e.target);
+    }
+
+    function onMouseUp() {
+      if (!isSelecting) return;
+      isSelecting = false;
+      if (selectedWords.length > 0) showToolbar();
+    }
+
+    function addToSelection(el) {
+      const segIdx = parseInt(el.dataset.seg, 10);
+      const wordIdx = parseInt(el.dataset.word, 10);
+      const already = selectedWords.find(
+        (w) => w.segIdx === segIdx && w.wordIdx === wordIdx
+      );
+      if (!already) {
+        selectedWords.push({ segIdx, wordIdx, el });
+        el.classList.add('selected');
+      }
+    }
+
+    function clearSelection() {
+      for (const w of selectedWords) w.el.classList.remove('selected');
+      selectedWords = [];
+      hideToolbar();
+    }
+
+    function showToolbar() {
+      const toolbar = document.getElementById('toolbar');
+      const last = selectedWords[selectedWords.length - 1].el;
+      const rect = last.getBoundingClientRect();
+      toolbar.style.top = (rect.bottom + 8) + 'px';
+      toolbar.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+      toolbar.classList.add('visible');
+    }
+
+    function hideToolbar() {
+      document.getElementById('toolbar').classList.remove('visible');
+      document.getElementById('comment-input').value = '';
+      document.getElementById('suggest-input').value = '';
+    }
+
+    async function annotate(action) {
+      if (selectedWords.length === 0) return;
+      const segIdx = selectedWords[0].segIdx;
+      const wordIndices = selectedWords.map((w) => w.wordIdx).sort((a, b) => a - b);
+      const text = wordIndices
+        .map((i) => draft.segments[segIdx].words[i])
+        .join(' ');
+      const comment = document.getElementById('comment-input').value.trim();
+      const replacement = document.getElementById('suggest-input').value.trim();
+
+      const annotation = {
+        segment: segIdx,
+        words: [wordIndices[0], wordIndices[wordIndices.length - 1]],
+        text: text,
+        action: action,
+      };
+      if (comment) annotation.comment = comment;
+      if (replacement && action === 'suggest') annotation.replacement = replacement;
+
+      await fetch('/api/annotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(annotation),
+      });
+
+      const cssClass =
+        action === 'like' ? 'liked' :
+        action === 'dislike' ? 'disliked' : 'suggested';
+      for (const w of selectedWords) {
+        w.el.classList.remove('selected', 'liked', 'disliked', 'suggested');
+        w.el.classList.add(cssClass);
+      }
+
+      annotationCount++;
+      document.getElementById('count').textContent = String(annotationCount);
+      clearSelection();
+    }
+
+    function signalDone() {
+      const container = document.getElementById('draft-container');
+      container.textContent = '';
+      const msg = document.createElement('p');
+      msg.style.cssText = 'text-align:center;color:#888;padding:3rem;';
+      msg.textContent = 'Done! Return to your terminal and type "done" to continue.';
+      container.appendChild(msg);
+      document.getElementById('done-bar').style.display = 'none';
+    }
+
+    init();
+  </script>
+</body>
+</html>
