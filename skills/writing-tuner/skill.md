@@ -122,10 +122,13 @@ Then get the guide update prompt:
 node "$WT/bin/cli.js" update-prompt --annotations-json 'THE_EXTRACT_OUTPUT'
 ```
 
-Use that prompt to generate an updated guide. Save it:
+Use that prompt to generate an updated guide. Save it by writing to a temp file (avoids security warnings from multi-line CLI args):
 
 ```bash
-node "$WT/bin/cli.js" save-draft "UPDATED_GUIDE_MARKDOWN"
+cat <<'GUIDE_EOF' > /tmp/writing-tuner-draft.md
+(your updated guide markdown here)
+GUIDE_EOF
+node "$WT/bin/cli.js" save-draft --file /tmp/writing-tuner-draft.md
 ```
 
 Tell the user what preferences were extracted (2-3 sentence summary).
@@ -143,7 +146,7 @@ Present the proof sample. Then offer:
 - **b) Annotate** — mark up this proof sample (back to ANNOTATE)
 - **c) Compare variants** — I'll generate 2-3 versions, you pick the best
 - **d) Test another prompt** — try a different writing task with the same guide
-- **e) Annotate another doc** — paste or upload new writing to annotate
+- **e) Annotate another doc** — generate a new piece of writing using the current guide (user can provide a prompt or you pick one), then annotate it. The user can also paste their own writing if they prefer.
 
 ### SAVE
 

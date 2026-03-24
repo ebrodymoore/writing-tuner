@@ -148,10 +148,27 @@ switch (command) {
 
   // ── SAVE-DRAFT ─────────────────────────────────────────
   // Saves updated guide content to guide-draft.md.
-  // Replaces: node -e "saveDraft..."
+  // Reads from --file path OR stdin (piped). Never pass guide content as a CLI arg
+  // because multi-line markdown with # characters triggers security warnings.
+  //
+  // Usage:
+  //   node bin/cli.js save-draft --file /tmp/guide-update.md
+  //   echo "guide content" | node bin/cli.js save-draft
   case 'save-draft': {
-    const content = args[0];
     const guideDir = getArg(args, '--guide-dir', './writing-guides');
+    const filePath = getArg(args, '--file', null);
+
+    let content;
+    if (filePath) {
+      content = fs.readFileSync(filePath, 'utf-8');
+    } else {
+      // Read from stdin
+      const chunks = [];
+      for await (const chunk of process.stdin) {
+        chunks.push(chunk);
+      }
+      content = Buffer.concat(chunks).toString('utf-8');
+    }
 
     const { saveDraft } = await import(path.join(ROOT, 'lib', 'versioner.js'));
     saveDraft(guideDir, content);
