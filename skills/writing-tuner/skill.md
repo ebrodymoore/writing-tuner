@@ -122,7 +122,9 @@ User provides a prompt or pastes existing writing. After generating/accepting, s
 node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
-This segments the text, writes `current-draft.json`, and prints numbered segments.
+**Terminal mode:** Show the numbered segment output to the user — they need the numbers to annotate.
+
+**Browser mode:** Do NOT show segment numbers or mention "segmented into N parts." The browser shows natural flowing text. Just tell the user to open the URL and start annotating.
 
 ### ANNOTATE
 
