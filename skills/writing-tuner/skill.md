@@ -35,22 +35,21 @@ Track these:
 
 ### New Session (`/writing-tuner`)
 
-**Ask one question at a time. Wait for the user's response before the next.**
+**Ask one question at a time using the interactive selector. Tell the user to run these with `!` so they get the arrow-key menu.**
 
-1. Ask: **"What writing output are you tuning for?"**
-   - a) Tweet / short-form social
-   - b) Blog post / newsletter
-   - c) Long-form / essay / story
-   - d) Marketing copy / ads
-   - e) General writing style
+1. Tell the user:
+   > Type this to pick your writing output:
+   > `! node "$WT/bin/select.js" --prompt "What writing output are you tuning for?" --options "Tweet / short-form social,Blog post / newsletter,Long-form / essay / story,Marketing copy / ads,General writing style"`
 
-   *Wait for response.*
+   *Wait for response. Map their selection to output_type.*
 
 2. Ask: **"Want to upload writing samples to establish your voice? Paste text, reference files, or skip to start from scratch."**
 
-   *Wait for response.*
+   *Wait for response. This one is free-text so no selector needed.*
 
-3. Ask: **"Feedback mode? Terminal (t) for keyboard shortcuts, or browser (b) for click-to-annotate. You can switch anytime."**
+3. Tell the user:
+   > Type this to pick feedback mode:
+   > `! node "$WT/bin/select.js" --prompt "Feedback mode?" --options "Terminal (keyboard shortcuts),Browser (click-to-annotate)"`
 
    *Wait for response.*
 
@@ -139,14 +138,17 @@ Generate a **fresh** writing sample using ONLY `current_guide` as instructions. 
 
 The user can provide a prompt or let you pick one for the `output_type`.
 
-Present the proof sample. Then offer:
+Present the proof sample. Then tell the user:
 
-**What next?**
-- **a) Accept** — save guide and exit
-- **b) Annotate** — mark up this proof sample (back to ANNOTATE)
-- **c) Compare variants** — I'll generate 2-3 versions, you pick the best
-- **d) Test another prompt** — try a different writing task with the same guide
-- **e) Annotate another doc** — generate a new piece of writing using the current guide (user can provide a prompt or you pick one), then annotate it. The user can also paste their own writing if they prefer.
+> Type this to choose what's next:
+> `! node "$WT/bin/select.js" --prompt "What next?" --options "Accept — save guide and exit,Annotate — mark up this proof sample,Compare variants — see 2-3 versions side by side,Test another prompt — different writing task same guide,Annotate another doc — generate new writing to annotate"`
+
+Handle the selection:
+- **Accept** → go to SAVE
+- **Annotate** → back to ANNOTATE with the proof sample
+- **Compare variants** → generate 2-3 versions, let user pick best, then offer this menu again
+- **Test another prompt** → ask for a prompt, generate using guide, then offer this menu again
+- **Annotate another doc** → generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE. User can also paste their own writing if they prefer.
 
 ### SAVE
 
