@@ -102,17 +102,6 @@ switch (command) {
     break;
   }
 
-  // ── ANNOTATE ───────────────────────────────────────────
-  // Appends a single annotation JSON line to annotations.jsonl.
-  // Replaces: echo '...' >> annotations.jsonl
-  case 'annotate': {
-    const json = args[0];
-    const sessionDir = getArg(args, '--session-dir', './writing-guides/.session');
-    fs.appendFileSync(path.join(sessionDir, 'annotations.jsonl'), json.trim() + '\n');
-    console.log('ok');
-    break;
-  }
-
   // ── EXTRACT ────────────────────────────────────────────
   // Parses, validates, deduplicates annotations. Returns JSON.
   // Single command replaces: node -e "parseAnnotations + validateAnnotations + dedupe..."

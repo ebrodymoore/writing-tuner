@@ -18,7 +18,6 @@ CLI_PATH=/Users/ericbrody-moore/Documents/writing-tuner/bin/cli.js
 ## Session State
 
 - `output_type`: tweet | blog-post | long-form | marketing-copy | general
-- `mode`: terminal | browser
 
 ## Startup
 
@@ -77,19 +76,7 @@ If `lock_acquired` is false, check if stale and offer force-unlock.
 
 If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
 
-**Step 6: Ask feedback mode using AskUserQuestion tool.**
-
-Use AskUserQuestion with:
-- question: "Which feedback mode?"
-- header: "Mode"
-- multiSelect: false
-- options:
-  - label: "Terminal", description: "Keyboard shortcuts — fast for short-form"
-  - label: "Browser", description: "Click-to-annotate web UI — better for longer pieces"
-
-Wait for response.
-
-**Step 7: Generate the first draft and segment it.**
+**Step 6: Generate the first draft and segment it.**
 
 Either ask for a writing prompt or generate one based on the output type. Then segment:
 
@@ -97,20 +84,20 @@ Either ask for a writing prompt or generate one based on the output type. Then s
 node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
-**Step 8: Start server if browser mode.**
-
-The draft text MUST be segmented before starting the server, so the browser has content to display.
+**Step 7: Start the browser annotation server.**
 
 ```bash
 node {CLI} server-start
 ```
-Tell the user the URL from the JSON output. The browser will show the draft text immediately.
+
+Tell the user ONLY: "Open http://localhost:PORT to annotate your text. Click on words or phrases to mark what you like, dislike, or want changed. Type `done` here when finished."
+
+Do NOT show segment numbers, list the text, or mention segmentation. The browser shows the text naturally.
 
 ### Resume Session (`/writing-tuner --guide <path>`)
 
 1. Load the specified guide file
-2. Ask for feedback mode (use AskUserQuestion as above)
-3. Run setup + server-start if browser, then go to DRAFT
+2. Run setup, then go to DRAFT
 
 ## The Loop
 
@@ -122,28 +109,13 @@ User provides a prompt or pastes existing writing. After generating/accepting, s
 node {CLI} segment "THE DRAFT TEXT HERE" "OUTPUT_TYPE"
 ```
 
-**CRITICAL — what to show the user depends on mode:**
-
-**Terminal mode:** Show the numbered segment output to the user — they need the numbers to annotate.
-
-**Browser mode:** Say ONLY: "Open http://localhost:PORT to annotate your text. Click on words or phrases to mark what you like, dislike, or want changed. Type `done` here when finished."
-
-That's it. Do NOT:
-- Show segment numbers
-- List the segmented text
-- Mention "segmented into N parts"
-- Show any preview of the text
-The browser renders the text naturally — the user will see it there.
+Then start/restart the server if not already running, and tell the user to open the URL. Do NOT show segments or mention segmentation.
 
 ### ANNOTATE
 
-**Terminal mode:** Read `annotate-terminal.md`. For each annotation command, write it:
+The browser handles all annotation. Wait for the user to type `done`.
 
-```bash
-node {CLI} annotate '{"segment":2,"words":[0,5],"text":"...","action":"dislike","comment":"too formal"}'
-```
-
-**Browser mode:** Read `annotate-browser.md`. The server handles annotations automatically — just wait for user to type `done`.
+Read `annotate-browser.md` for details on the server lifecycle.
 
 ### EXTRACT
 
@@ -186,7 +158,7 @@ Present the proof sample. Then **use AskUserQuestion:**
 
 Handle the selection:
 - **Accept** → go to SAVE
-- **Annotate** → back to ANNOTATE with the proof sample
+- **Annotate** → segment the proof sample, update the browser, back to ANNOTATE
 - **Compare variants** → generate 2-3 versions, let user pick best, then offer this menu again
 - **Test another prompt** → ask for a prompt, generate using guide, then offer this menu again
 - **Other** → generate a new piece using the current guide (user can provide a prompt or you pick one), then go to ANNOTATE
@@ -209,6 +181,6 @@ Report to user:
 ## Error Recovery
 
 - **Draft exists on startup:** `setup` returns `guide_state: "draft-exists"` — MUST use AskUserQuestion
-- **Browser server fails:** fall back to terminal mode, notify user
+- **Browser server fails to start:** tell user and ask them to check Node.js is installed
 - **Stale lock:** `setup` returns `lock_acquired: false` — check if stale, offer force-unlock
 - **Invalid annotations:** `extract` returns warnings — tell user, continue
