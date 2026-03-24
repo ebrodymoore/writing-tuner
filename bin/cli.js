@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -206,15 +207,42 @@ switch (command) {
   }
 
   // ── SERVER-START ───────────────────────────────────────
-  // Starts browser annotation server. Prints connection info.
+  // Spawns browser server as a detached process and exits immediately.
+  // The old approach ran the server in-process, which blocked Claude Code's
+  // Bash tool indefinitely (it waits for the process to exit).
   case 'server-start': {
     const sessionDir = getArg(args, '--session-dir', './writing-guides/.session');
+    const serverScript = path.join(ROOT, 'server', 'server.js');
 
-    const { startServer } = await import(path.join(ROOT, 'server', 'server.js'));
-    const { port } = await startServer(sessionDir, 0);
+    // Clean up stale .server-info from previous runs
+    const infoPath = path.join(sessionDir, '.server-info');
+    if (fs.existsSync(infoPath)) fs.unlinkSync(infoPath);
 
-    console.log(JSON.stringify({ type: 'server-started', port, url: `http://localhost:${port}` }));
-    // Server keeps running in background
+    // Spawn detached server — it writes .server-info on startup
+    const child = spawn(process.execPath, [serverScript, '--session-dir', sessionDir, '--port', '0'], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+
+    // Poll for .server-info (server writes it on listen)
+    let info = null;
+    for (let i = 0; i < 20; i++) {
+      if (fs.existsSync(infoPath)) {
+        try {
+          info = JSON.parse(fs.readFileSync(infoPath, 'utf-8'));
+          break;
+        } catch { /* file not fully written yet */ }
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    if (info) {
+      console.log(JSON.stringify({ type: 'server-started', ...info }));
+    } else {
+      console.error('Server failed to start within 2 seconds');
+      process.exit(1);
+    }
     break;
   }
 
