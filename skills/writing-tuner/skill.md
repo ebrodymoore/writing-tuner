@@ -46,27 +46,15 @@ Ask in text: **"Want to upload writing samples to establish your voice? Paste te
 
 Wait for response.
 
-**Step 3: Ask feedback mode using AskUserQuestion tool.**
-
-Use AskUserQuestion with:
-- question: "Which feedback mode?"
-- header: "Mode"
-- multiSelect: false
-- options:
-  - label: "Terminal", description: "Keyboard shortcuts — fast for short-form"
-  - label: "Browser", description: "Click-to-annotate web UI — better for longer pieces"
-
-Wait for response.
-
-**Step 4: Run setup.**
+**Step 3: Run setup.**
 
 ```bash
 node {CLI} setup
 ```
 
-**Step 5: MANDATORY — check `guide_state` in the setup response. Do NOT skip this.**
+**Step 4: MANDATORY — check `guide_state` in the setup response. Do NOT skip this.**
 
-- If `"fresh"`: proceed to step 6
+- If `"fresh"`: proceed to step 5
 - If `"draft-exists"`: **STOP. Use AskUserQuestion:**
   - question: "Found an unsaved draft from a previous session. What would you like to do?"
   - header: "Draft"
@@ -85,9 +73,21 @@ node {CLI} setup
 
 If `lock_acquired` is false, check if stale and offer force-unlock.
 
-**Step 6: Seed guide from samples (if provided).**
+**Step 5: Seed guide from samples (if provided).**
 
 If samples were provided, analyze them and use the **Write tool** to write initial preferences directly to `./writing-guides/guide-draft.md`. Do NOT use the CLI or temp files — just write the file.
+
+**Step 6: Ask feedback mode using AskUserQuestion tool.**
+
+Use AskUserQuestion with:
+- question: "Which feedback mode?"
+- header: "Mode"
+- multiSelect: false
+- options:
+  - label: "Terminal", description: "Keyboard shortcuts — fast for short-form"
+  - label: "Browser", description: "Click-to-annotate web UI — better for longer pieces"
+
+Wait for response.
 
 **Step 7: Generate the first draft and segment it.**
 
