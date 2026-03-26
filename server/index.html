@@ -236,10 +236,20 @@
         document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
       }
 
-      // Position toolbar near selection
+      // Position toolbar near selection — flip above if near viewport bottom
       const last = selectedWords[selectedWords.length - 1].el;
       const rect = last.getBoundingClientRect();
-      toolbar.style.top = (rect.bottom + 8 + window.scrollY) + 'px';
+      const toolbarHeight = 180; // approximate height of toolbar
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      if (spaceBelow < toolbarHeight + 16) {
+        // Not enough room below — position above the first selected word
+        const first = selectedWords[0].el;
+        const firstRect = first.getBoundingClientRect();
+        toolbar.style.top = (firstRect.top - toolbarHeight - 8) + 'px';
+      } else {
+        toolbar.style.top = (rect.bottom + 8) + 'px';
+      }
       toolbar.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
       toolbar.classList.add('visible');
 
@@ -363,6 +373,13 @@
 
       clearSelection();
     }
+
+    // Close toolbar on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        clearSelection();
+      }
+    });
 
     // Close toolbar when clicking outside — use mousedown so it fires
     // BEFORE the drag cycle, not after (click fires after mouseup and

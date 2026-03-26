@@ -59,6 +59,8 @@ cd writing-tuner
 
 ## Annotation UI
 
+<img src="assets/annotation-ui.png" alt="Annotation UI showing word-level feedback with like, dislike, and comment controls" width="700">
+
 A local web UI with click/drag word selection.
 
 - Click or drag to select any word or phrase
